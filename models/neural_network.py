@@ -127,7 +127,7 @@ def load_model(model_file="./model.json",
     loaded_model.load_weights(weights_file)
 
     loaded_model.compile(
-        optimizer=optimizers.RMSprop(lr=0.06),
+        optimizer=optimizers.RMSprop(lr=0.6),
         loss='categorical_crossentropy',
         metrics=['accuracy']
     )

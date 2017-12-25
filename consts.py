@@ -1,7 +1,3 @@
-RANDOM_ACTION_THRESHOLD = 0.8
-REWARD_NORMALIZATION_FACTOR = 0.03
-Y = 0.9
-
 LEVELS = [
     "ppaquette/meta-SuperMarioBros-v0",
     "ppaquette/meta-SuperMarioBros-Tiles-v0",
