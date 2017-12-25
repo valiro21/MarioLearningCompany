@@ -5,9 +5,10 @@ import numpy as np
 import gym
 import ppaquette_gym_super_mario.wrappers
 from operator import add
-from consts import *
 
-from models.neural_network import build_model
+from consts import LEVELS
+
+from models.neural_network import build_model, save_model, load_model
 
 
 def get_action_from_idx(idx):
@@ -28,25 +29,18 @@ def get_idx_from_action(act):
     )
 
 
-def save_model(model_to_save,
-               model_file='model.json',
-               weights_file='model.h5'):
-    # serialize model to JSON
-    model_json = model_to_save.to_json()
-    with open(model_file, "w") as json_file:
-        json_file.write(model_json)
-
-    # serialize weights to HDF5
-    model_to_save.save_weights(weights_file)
-
-
-_ITERATIONS = 10
-
-if __name__ == '__main__':
-    model = build_model()
-
-    for _ in range(_ITERATIONS):
-        level = random.choice(LEVELS)
+def learn_model(
+        model,
+        iterations=10,
+        y=0.9,
+        reward_factor=0.06,
+        random_factor_chance=0.1,
+        random_factor_minimum=0.00001,
+        random_factor_decay=0.001,
+        verbose=False,
+        save_model_iteration=True):
+    level = random.choice(LEVELS)
+    for _ in range(iterations):
         env = gym.make(level)
         env.reset()
         done = False
@@ -59,16 +53,26 @@ if __name__ == '__main__':
             action = get_action_from_idx(action_idx)
 
             random_number = random.uniform(0.0, 1.0)
-            if random_number > RANDOM_ACTION_THRESHOLD:
+            if random_number < random_factor_chance:
                 action = env.action_space.sample()
                 action_idx = get_idx_from_action(action)
 
+            if random_factor_chance > random_factor_minimum:
+                random_factor_chance -= random_factor_decay * random_factor_chance
+
             observation, reward, done, info = env.step(action)
             observation = observation.reshape(((1,) + observation.shape))
+
+            if verbose:
+                print("Reward:", reward)
+                print("Done:", done)
+                print("Info:", info)
+                print("Random factor:", random_factor_chance)
+
             # Update network with reward
             scores = model.predict(observation)
             max_next_score = np.max(scores)
-            updated_score = reward * REWARD_NORMALIZATION_FACTOR + Y * max_next_score
+            updated_score = reward * reward_factor + y * max_next_score
 
             scores[0, action_idx] = updated_score
             model.fit(
@@ -78,4 +82,21 @@ if __name__ == '__main__':
 
         env.close()
 
-        save_model(model)
+        if save_model_iteration:
+            save_model(model)
+
+
+if __name__ == '__main__':
+    # mario_model = build_model()
+    mario_model = load_model()
+    learn_model(mario_model,
+                iterations=50000,
+                verbose=True,
+                random_factor_chance=0.2,
+                random_factor_decay=0.000001,
+                random_factor_minimum=0.0001,
+                save_model_iteration=True)
+    save_model(mario_model)
+
+
+
