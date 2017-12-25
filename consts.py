@@ -1,0 +1,40 @@
+RANDOM_ACTION_THRESHOLD = 0.8
+REWARD_NORMALIZATION_FACTOR = 0.03
+Y = 0.9
+
+LEVELS = [
+    "ppaquette/meta-SuperMarioBros-v0",
+    "ppaquette/meta-SuperMarioBros-Tiles-v0",
+    "ppaquette/SuperMarioBros-1-1-v0",
+    "ppaquette/SuperMarioBros-1-2-v0",
+    "ppaquette/SuperMarioBros-1-3-v0",
+    "ppaquette/SuperMarioBros-1-4-v0",
+    "ppaquette/SuperMarioBros-2-1-v0",
+    "ppaquette/SuperMarioBros-2-2-v0",
+    "ppaquette/SuperMarioBros-2-3-v0",
+    "ppaquette/SuperMarioBros-2-4-v0",
+    "ppaquette/SuperMarioBros-3-1-v0",
+    "ppaquette/SuperMarioBros-3-2-v0",
+    "ppaquette/SuperMarioBros-3-3-v0",
+    "ppaquette/SuperMarioBros-3-4-v0",
+    "ppaquette/SuperMarioBros-4-1-v0",
+    "ppaquette/SuperMarioBros-4-2-v0",
+    "ppaquette/SuperMarioBros-4-3-v0",
+    "ppaquette/SuperMarioBros-4-4-v0",
+    "ppaquette/SuperMarioBros-5-1-v0",
+    "ppaquette/SuperMarioBros-5-2-v0",
+    "ppaquette/SuperMarioBros-5-3-v0",
+    "ppaquette/SuperMarioBros-5-4-v0",
+    "ppaquette/SuperMarioBros-6-1-v0",
+    "ppaquette/SuperMarioBros-6-2-v0",
+    "ppaquette/SuperMarioBros-6-3-v0",
+    "ppaquette/SuperMarioBros-6-4-v0",
+    "ppaquette/SuperMarioBros-7-1-v0",
+    "ppaquette/SuperMarioBros-7-2-v0",
+    "ppaquette/SuperMarioBros-7-3-v0",
+    "ppaquette/SuperMarioBros-7-4-v0",
+    "ppaquette/SuperMarioBros-8-1-v0",
+    "ppaquette/SuperMarioBros-8-2-v0",
+    "ppaquette/SuperMarioBros-8-3-v0",
+    "ppaquette/SuperMarioBros-8-4-v0"
+]
