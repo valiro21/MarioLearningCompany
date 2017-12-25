@@ -29,7 +29,7 @@ def get_idx_from_action(act):
     )
 
 
-class Memory(object):
+class ExperienceReplay(object):
     def __init__(self, max_memory_steps, alpha=0.2, gamma=0.7):
         self.max_memory_steps = max_memory_steps
         self._memory_idx = 0
@@ -52,20 +52,32 @@ class Memory(object):
 
         self._memory_idx = (self._memory_idx + 1) % self.max_memory_steps
 
-    def train(self, model, train_epochs=5, train_batch_size=1):
+    def train(self, model, experience_sample_size, train_epochs=5, train_batch_size=1, next_state_score=0):
         y = model.predict(self.observations)
+        has_uninitialized = False
         for idx in range(self.max_memory_steps):
             if self.actions[idx] != -1:
-                next_score = 0
+                next_score = next_state_score
                 if idx != self._memory_idx:
                     next_score = np.max(y[(idx + 1) % self.max_memory_steps])
                 old_score = y[idx, self.actions[idx]]
                 updated_score = (1 - self.alpha) * old_score + self.alpha * (self.rewards[idx] + self.gamma * next_score)
                 y[idx, self.actions[idx]] = updated_score
+            else:
+                has_uninitialized = True
 
         model.fit(
-            x=self.observations,
-            y=y,
+            x=self.observations[self._memory_idx].reshape(((1,)+self.observations[self._memory_idx].shape)),
+            y=y[self._memory_idx].reshape(((1,)+y[self._memory_idx].shape)),
+            epochs=train_epochs
+        )
+
+        num_choices = self._memory_idx if has_uninitialized else self.max_memory_steps
+
+        sample = np.random.choice(num_choices, experience_sample_size)
+        model.fit(
+            x=self.observations[sample],
+            y=y[sample],
             epochs=train_epochs,
             batch_size=train_batch_size
         )
@@ -76,6 +88,7 @@ def learn_model(
         iterations=10,
         gamma=0.7,
         alpha=0.2,
+        experience_sample_size=20,
         train_epochs=1,
         train_batch_size=1,
         random_factor_chance=0.1,
@@ -83,6 +96,7 @@ def learn_model(
         random_factor_decay=0.001,
         max_memory_steps=50,
         observe_steps=0,
+        switch_level_on_pass=True,
         verbose=False,
         save_model_iteration=True):
 
@@ -94,13 +108,14 @@ def learn_model(
 
         env.render()
         scores = [0] * 64
-        memory = Memory(
+        memory = ExperienceReplay(
             max_memory_steps,
             alpha=alpha,
             gamma=gamma
         )
 
         step = 0
+        level_passed = True
         while not done:
             random_number = random.uniform(0.0, 1.0)
             if random_number < random_factor_chance:
@@ -117,8 +132,14 @@ def learn_model(
             observation = observation.reshape(((1,) + observation.shape))
             observation = observation / 255.
 
+            # Update network with reward
+            scores = model.predict(observation)
+            next_state_score = np.max(scores)
+
             if info['life'] == 0:
+                level_passed = False
                 reward = -1000
+                next_state_score = 0
             reward -= 1
 
             if verbose:
@@ -127,19 +148,20 @@ def learn_model(
                 print("Info:", info)
                 print("Random factor:", random_factor_chance)
 
-            # Update network with reward
-            scores = model.predict(observation)
-
             memory.add(observation, reward, action_idx)
 
             if done or step >= observe_steps:
                 memory.train(model,
+                             experience_sample_size=experience_sample_size,
                              train_epochs=train_epochs,
-                             train_batch_size=train_batch_size)
+                             train_batch_size=train_batch_size,
+                             next_state_score=next_state_score)
 
             step += 1
-
         env.close()
+
+        if level_passed and switch_level_on_pass:
+            level = random.choice(LEVELS)
 
         if save_model_iteration:
             save_model(model)
@@ -149,9 +171,10 @@ if __name__ == '__main__':
     # mario_model = build_model()
     mario_model = load_model()
     learn_model(mario_model,
-                iterations=50000,
+                iterations=5000000,
                 verbose=True,
                 alpha=0.4,
+                experience_sample_size=20,
                 train_batch_size=50,
                 train_epochs=1,
                 random_factor_chance=0.1,
