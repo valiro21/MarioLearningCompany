@@ -1,4 +1,5 @@
 import random
+from collections import Counter
 from functools import reduce
 
 import numpy as np
@@ -52,32 +53,56 @@ class ExperienceReplay(object):
 
         self._memory_idx = (self._memory_idx + 1) % self.max_memory_steps
 
-    def train(self, model, experience_sample_size, train_epochs=5, train_batch_size=1, next_state_score=0):
-        y = model.predict(self.observations)
-        has_uninitialized = False
-        for idx in range(self.max_memory_steps):
-            if self.actions[idx] != -1:
-                next_score = next_state_score
-                if idx != self._memory_idx:
-                    next_score = np.max(y[(idx + 1) % self.max_memory_steps])
-                old_score = y[idx, self.actions[idx]]
-                updated_score = (1 - self.alpha) * old_score + self.alpha * (self.rewards[idx] + self.gamma * next_score)
-                y[idx, self.actions[idx]] = updated_score
-            else:
-                has_uninitialized = True
+    def train(self, model, experience_sample_size,
+              train_epochs=5, train_batch_size=1,
+              next_state_score=0, ):
+        last_idx = self._memory_idx - 1 if self._memory_idx > 0 else self.max_memory_steps - 1
+
+        y = model.predict(self.observations[[last_idx]])
+        old_score = y[0, self.actions[last_idx]]
+        updated_score = (1 - self.alpha) * old_score + self.alpha * (self.rewards[last_idx] + self.gamma * next_state_score)
+        y[0, self.actions[last_idx]] = updated_score
 
         model.fit(
-            x=self.observations[self._memory_idx].reshape(((1,)+self.observations[self._memory_idx].shape)),
-            y=y[self._memory_idx].reshape(((1,)+y[self._memory_idx].shape)),
+            x=self.observations[[last_idx]],
+            y=y,
             epochs=train_epochs
         )
 
-        num_choices = self._memory_idx if has_uninitialized else self.max_memory_steps
+        has_uninitialized = any(filter(lambda x: x < 0, self.actions))
 
-        sample = np.random.choice(num_choices, experience_sample_size)
+        num_choices = last_idx if has_uninitialized else self.max_memory_steps
+        if num_choices == 0:
+            return
+
+        if num_choices < experience_sample_size:
+            experience_sample_size = num_choices
+
+        sample = random.sample(range(num_choices), experience_sample_size)
+
+        samples_next_states = list(
+            map(
+                lambda x: (x + 1) % self.max_memory_steps,
+                sample
+            )
+        )
+
+        next_scores = np.max(
+            model.predict(
+                self.observations[samples_next_states]
+            ),
+            axis=1
+        )
+        y = model.predict(self.observations[sample])
+        for yidx, val in enumerate(zip(sample, next_scores)):
+            idx, next_score = val
+            old_score = y[yidx, self.actions[idx]]
+            updated_score = (1 - self.alpha) * old_score + self.alpha * (self.rewards[idx] + self.gamma * next_score)
+            y[yidx, self.actions[idx]] = updated_score
+
         model.fit(
             x=self.observations[sample],
-            y=y[sample],
+            y=y,
             epochs=train_epochs,
             batch_size=train_batch_size
         )
@@ -101,6 +126,7 @@ def learn_model(
         save_model_iteration=True):
 
     level = random.choice(LEVELS)
+    level_switched = True
     for _ in range(iterations):
         env = gym.make(level)
         env.reset()
@@ -108,12 +134,15 @@ def learn_model(
 
         env.render()
         scores = [0] * 64
-        memory = ExperienceReplay(
-            max_memory_steps,
-            alpha=alpha,
-            gamma=gamma
-        )
 
+        if level_switched:
+            memory = ExperienceReplay(
+                max_memory_steps,
+                alpha=alpha,
+                gamma=gamma
+            )
+
+        level_switched = False
         step = 0
         level_passed = True
         while not done:
@@ -140,13 +169,16 @@ def learn_model(
                 level_passed = False
                 reward = -1000
                 next_state_score = 0
-            reward -= 1
+
+            if reward == 0:
+                reward = -2
 
             if verbose:
                 print("Reward:", reward)
                 print("Done:", done)
                 print("Info:", info)
                 print("Random factor:", random_factor_chance)
+                print("Scores:", scores)
 
             memory.add(observation, reward, action_idx)
 
@@ -161,6 +193,7 @@ def learn_model(
         env.close()
 
         if level_passed and switch_level_on_pass:
+            level_switched = True
             level = random.choice(LEVELS)
 
         if save_model_iteration:
@@ -168,13 +201,15 @@ def learn_model(
 
 
 if __name__ == '__main__':
-    # mario_model = build_model()
-    mario_model = load_model()
+    mario_model = build_model()
+    # mario_model = load_model()
     learn_model(mario_model,
                 iterations=5000000,
                 verbose=True,
-                alpha=0.4,
-                experience_sample_size=20,
+                alpha=0.00015,
+                gamma=1.6,
+                experience_sample_size=10,
+                max_memory_steps=20,
                 train_batch_size=50,
                 train_epochs=1,
                 random_factor_chance=0.1,
