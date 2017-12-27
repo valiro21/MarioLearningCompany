@@ -32,11 +32,12 @@ def get_idx_from_action(act):
 
 
 class ExperienceReplay(object):
-    def __init__(self, size=100, alpha=0.2,
+    def __init__(self, max_size=100, alpha=0.2,
                  gamma=0.7, sample_size=5,
                  train_epochs=1, batch_size=5,
                  queue_behaviour=True):
-        self.size = size
+        self.max_size = max_size
+        self._size = 0
         self._memory_idx = 0
         self.alpha = alpha
         self.gamma = gamma
@@ -49,16 +50,19 @@ class ExperienceReplay(object):
 
         self.states = None
         self.next_states = None
-        self.actions = [-1] * size
-        self.rewards = [0] * size
-        self.is_next_final_state = [False] * size
+        self.actions = [-1] * max_size
+        self.rewards = [0] * max_size
+        self.is_next_final_state = [False] * max_size
+
+    def size(self):
+        return self._size
 
     def is_full(self):
         return self._full
 
     def _initialize(self, game_image_shape):
-        self.states = np.zeros(shape=((self.size,) + game_image_shape[1:]))
-        self.next_states = np.zeros(shape=((self.size,) + game_image_shape[1:]))
+        self.states = np.zeros(shape=((self.max_size,) + game_image_shape[1:]))
+        self.next_states = np.zeros(shape=((self.max_size,) + game_image_shape[1:]))
 
     def add(self, state, reward, action_idx, next_state, is_final_state):
         if self.states is None:
@@ -72,18 +76,21 @@ class ExperienceReplay(object):
 
         self._memory_idx += 1
 
-        if self._memory_idx == self.size:
+        if not self._full:
+            self._size += 1
+
+        if self._memory_idx == self.max_size:
             self._full = True
             if self._queue_behaviour:
-                self._memory_idx = self._memory_idx % self.size
+                self._memory_idx = self._memory_idx % self.max_size
 
         if self._full and not self._queue_behaviour:
-            self._memory_idx = random.randint(0, self.size)
+            self._memory_idx = random.randint(0, self.max_size)
 
     def train(self, model):
         has_uninitialized = any(filter(lambda x: x < 0, self.actions))
 
-        num_choices = self._memory_idx if has_uninitialized else self.size
+        num_choices = self._memory_idx if has_uninitialized else self.max_size
         if num_choices == 0:
             return
 
@@ -197,7 +204,7 @@ def learn_model(
             memory.add(observation, reward, action_idx, last_state, final_state)
             last_state = observation
 
-            if done or memory.is_full() or step >= observe_steps:
+            if done or memory.is_full() or memory.size() >= observe_steps:
                 memory.train(model)
 
             step += 1
@@ -215,7 +222,7 @@ if __name__ == '__main__':
     # mario_model = load_model()
 
     replay_memory = ExperienceReplay(
-        size=3000,
+        max_size=3000,
         alpha=0.1,
         gamma=0.9,
         train_epochs=1,
