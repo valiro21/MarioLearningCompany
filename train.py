@@ -170,6 +170,7 @@ def learn_model(
             observation = observation.reshape(((1,) + observation.shape))
             observation = observation / 255.
             reward -= 0.4
+            reward *= 5
 
             # Update network with reward
             scores = model.predict(observation)
@@ -210,7 +211,7 @@ if __name__ == '__main__':
 
     replay_memory = ExperienceReplay(
         size=3000,
-        alpha=0.003,
+        alpha=0.03,
         gamma=0.9,
         train_epochs=1,
         sample_size=20,
@@ -222,7 +223,7 @@ if __name__ == '__main__':
                 iterations=5000000,
                 observe_steps=10,
                 verbose=True,
-                random_factor_chance=1,
+                random_factor_chance=0.3,
                 random_factor_decay=0.0001,
                 random_factor_minimum=0.001,
                 save_model_iteration=True)
