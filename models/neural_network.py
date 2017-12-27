@@ -84,7 +84,7 @@ def build_model():
     )
 
     model.compile(
-        optimizer=optimizers.SGD(lr=0.002),
+        optimizer=optimizers.SGD(lr=1),
         loss='mse',
         metrics=['accuracy']
     )
@@ -116,7 +116,7 @@ def load_model(model_file="./model.json",
     loaded_model.load_weights(weights_file)
 
     loaded_model.compile(
-        optimizer=optimizers.RMSprop(lr=0.002),
+        optimizer=optimizers.RMSprop(lr=1),
         loss='mse',
         metrics=['accuracy']
     )
