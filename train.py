@@ -53,12 +53,15 @@ class ExperienceReplay(object):
         self.rewards = [0] * size
         self.is_next_final_state = [False] * size
 
+    def is_full(self):
+        return self._full
+
     def _initialize(self, game_image_shape):
         self.states = np.zeros(shape=((self.size,) + game_image_shape[1:]))
         self.next_states = np.zeros(shape=((self.size,) + game_image_shape[1:]))
 
     def add(self, state, reward, action_idx, next_state, is_final_state):
-        if self.observations is None:
+        if self.states is None:
             self._initialize(state.shape)
 
         self.states[self._memory_idx] = state
@@ -69,9 +72,10 @@ class ExperienceReplay(object):
 
         self._memory_idx += 1
 
-        if self._queue_behaviour and self._memory_idx == self.size:
-            self._memory_idx = self._memory_idx % self.size
+        if self._memory_idx == self.size:
             self._full = True
+            if self._queue_behaviour:
+                self._memory_idx = self._memory_idx % self.size
 
         if self._full and not self._queue_behaviour:
             self._memory_idx = random.randint(0, self.size)
@@ -136,12 +140,13 @@ def learn_model(
         random_factor_chance=0.1,
         random_factor_minimum=0.00001,
         random_factor_decay=0.001,
+        initial_level=None,
         observe_steps=0,
         switch_level_on_pass=True,
         verbose=False,
         save_model_iteration=True):
 
-    level = random.choice(LEVELS)
+    level = random.choice(LEVELS) if initial_level is None else LEVELS[initial_level]
     for _ in range(iterations):
         env = gym.make(level)
         env.reset()
@@ -192,7 +197,7 @@ def learn_model(
             memory.add(observation, reward, action_idx, last_state, final_state)
             last_state = observation
 
-            if done or step >= observe_steps:
+            if done or memory.is_full() or step >= observe_steps:
                 memory.train(model)
 
             step += 1
@@ -211,7 +216,7 @@ if __name__ == '__main__':
 
     replay_memory = ExperienceReplay(
         size=3000,
-        alpha=0.03,
+        alpha=0.1,
         gamma=0.9,
         train_epochs=1,
         sample_size=20,
@@ -222,10 +227,11 @@ if __name__ == '__main__':
                 replay_memory,
                 iterations=5000000,
                 observe_steps=10,
+                initial_level=27,
                 verbose=True,
-                random_factor_chance=0.3,
-                random_factor_decay=0.0001,
-                random_factor_minimum=0.001,
+                random_factor_chance=1,
+                random_factor_decay=0.0002,
+                random_factor_minimum=0.05,
                 save_model_iteration=True)
     save_model(mario_model)
 
