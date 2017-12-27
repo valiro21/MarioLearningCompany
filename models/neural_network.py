@@ -1,5 +1,5 @@
 from keras import Sequential, optimizers
-from keras.layers import Conv2D, MaxPooling2D, Dense, Flatten, Dropout
+from keras.layers import Conv2D, MaxPooling2D, Dense, Flatten, Dropout, SpatialDropout2D, regularizers, initializers
 from keras.models import model_from_json
 
 
@@ -9,64 +9,45 @@ def build_model():
     model.add(
         Conv2D(
             filters=32,
-            kernel_size=(5, 5),
-            input_shape=(224, 256, 3),
+            kernel_size=(8, 8),
+            input_shape=(224, 256, 1),
+            strides=(4, 4),
             padding="same",
             data_format='channels_last',
             activation='relu'
         )
     )
     model.add(
-        MaxPooling2D(
-            pool_size=(4, 4)
+        SpatialDropout2D(
+            0.1
         )
     )
 
     model.add(
         Conv2D(
             filters=64,
-            kernel_size=(5, 5),
+            kernel_size=(4, 4),
             input_shape=(56, 64, 32),
+            strides=(2, 2),
             padding="same",
             data_format='channels_last',
             activation='relu'
         )
     )
+
     model.add(
-        MaxPooling2D(
-            pool_size=(4, 4)
+        SpatialDropout2D(
+            0.1
         )
     )
 
     model.add(
         Conv2D(
-            filters=128,
-            kernel_size=(5, 5),
+            filters=64,
+            kernel_size=(3, 3),
             input_shape=(14, 16, 64),
-            padding="same",
             data_format='channels_last',
             activation='relu'
-        )
-    )
-    model.add(
-        MaxPooling2D(
-            pool_size=(2, 2)
-        )
-    )
-
-    model.add(
-        Conv2D(
-            filters=256,
-            kernel_size=(5, 5),
-            input_shape=(7, 8, 128),
-            padding="same",
-            data_format='channels_last',
-            activation='relu'
-        )
-    )
-    model.add(
-        MaxPooling2D(
-            pool_size=(2, 2)
         )
     )
 
@@ -75,28 +56,36 @@ def build_model():
     )
 
     model.add(
+        Dropout(
+            0.5
+        )
+    )
+
+    model.add(
         Dense(
-            units=200,
+            units=512,
+            kernel_initializer='random_uniform',
             activation='relu'
         )
     )
 
     model.add(
         Dropout(
-            0.6
+            0.5
         )
     )
 
     model.add(
         Dense(
             units=64,
+            kernel_initializer='random_uniform',
             activation='sigmoid'
         )
     )
 
     model.compile(
-        optimizer=optimizers.RMSprop(lr=0.0005),
-        loss='categorical_crossentropy',
+        optimizer=optimizers.SGD(lr=0.002),
+        loss='mse',
         metrics=['accuracy']
     )
 
@@ -127,8 +116,8 @@ def load_model(model_file="./model.json",
     loaded_model.load_weights(weights_file)
 
     loaded_model.compile(
-        optimizer=optimizers.RMSprop(lr=0.0005),
-        loss='categorical_crossentropy',
+        optimizer=optimizers.RMSprop(lr=0.002),
+        loss='mse',
         metrics=['accuracy']
     )
 

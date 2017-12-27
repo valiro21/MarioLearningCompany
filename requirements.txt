@@ -4,3 +4,4 @@ keras
 h5py
 gym
 git+https://github.com/ppaquette/gym-super-mario
+termcolors
