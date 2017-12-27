@@ -172,6 +172,7 @@ def learn_model(
 
             if reward == 0:
                 reward = -2
+            reward /= 20
 
             if verbose:
                 print("Reward:", reward)
@@ -206,10 +207,10 @@ if __name__ == '__main__':
     learn_model(mario_model,
                 iterations=5000000,
                 verbose=True,
-                alpha=0.00015,
-                gamma=1.6,
-                experience_sample_size=10,
-                max_memory_steps=20,
+                alpha=0.2,
+                gamma=0.9,
+                experience_sample_size=15,
+                max_memory_steps=30,
                 train_batch_size=50,
                 train_epochs=1,
                 random_factor_chance=0.1,
