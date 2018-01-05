@@ -54,7 +54,7 @@ if __name__ == '__main__':
 
     agent = Agent(mario_model)
 
-    policy = RandomPolicy()
+    policy = RandomPolicy(epsilon=1., epsilon_decay=0.001, epsilon_min=0.1)
 
     train(AgentConvolutionDebug(agent, debug_logger_thread),
           MemoryLogger(replay_memory, debug_logger_thread),
