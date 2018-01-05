@@ -6,11 +6,11 @@ from keras.models import model_from_json
 
 
 def build_model():
-    # Input size: 8x224x256
-    conv_model = Sequential()
-    conv_model.add(
+    # Input size: 1x224x256
+    model = Sequential()
+    model.add(
         Conv2D(
-            filters=3,
+            filters=16,
             kernel_size=(4, 4),
             input_shape=(1, 224, 256),
             strides=(4, 4),
@@ -20,20 +20,17 @@ def build_model():
         )
     )
 
-    conv_model.add(
+    model.add(
         SpatialDropout2D(
             0.1
         )
     )
 
-    model = Sequential()
-    model.add(conv_model)
-
     model.add(
         Conv2D(
-            filters=3,
+            filters=25,
             kernel_size=(4, 4),
-            input_shape=(3, 56, 64),
+            input_shape=(16, 56, 64),
             strides=(4, 4),
             padding="same",
             data_format='channels_first',
@@ -49,9 +46,9 @@ def build_model():
 
     model.add(
         Conv2D(
-            filters=32,
+            filters=36,
             kernel_size=(4, 4),
-            input_shape=(3, 14, 16),
+            input_shape=(25, 14, 16),
             strides=(2, 2),
             padding="same",
             data_format='channels_first',
@@ -67,9 +64,9 @@ def build_model():
 
     model.add(
         Conv2D(
-            filters=32,
+            filters=49,
             kernel_size=(3, 3),
-            input_shape=(32, 7, 8),
+            input_shape=(36, 7, 8),
             data_format='channels_first',
             activation='relu'
         )
@@ -87,7 +84,7 @@ def build_model():
 
     model.add(
         Dense(
-            units=512,
+            units=256,
             kernel_initializer='random_uniform',
             activation='relu'
         )
@@ -112,15 +109,9 @@ def build_model():
         metrics=['accuracy']
     )
 
-    conv_model.compile(
-        optimizer=optimizers.SGD(lr=1),
-        loss='mse',
-        metrics=['accuracy']
-    )
-
     model._make_predict_function()
 
-    return model, conv_model
+    return model
 
 
 def save_model(model_to_save,

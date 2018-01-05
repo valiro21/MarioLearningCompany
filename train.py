@@ -1,9 +1,6 @@
 import random
-
-import numpy as np
 import gym
 import ppaquette_gym_super_mario
-import tensorflow
 
 from consts import LEVELS
 import matplotlib.pyplot as plt
@@ -11,7 +8,8 @@ import matplotlib.pyplot as plt
 from models.neural_network import build_model, save_model, load_model
 from rl.Agent import Agent
 from rl.CustomEnv import CustomEnv
-from rl.MemoryConvolutionViewer import MemoryConvolutionViewer
+from rl.DebugLoggerThread import DebugLoggerThread
+from rl.AgentConvolutionDebug import AgentConvolutionDebug
 from rl.RandomPolicy import RandomPolicy
 from rl.ExperienceReplay import ExperienceReplay
 from rl.MemoryLogger import MemoryLogger
@@ -38,7 +36,7 @@ def alpha_decay(a, t):
 
 
 if __name__ == '__main__':
-    mario_model, conv_model = build_model()
+    mario_model = build_model()
     # mario_model = load_model()
 
     replay_memory = ExperienceReplay(
@@ -51,12 +49,15 @@ if __name__ == '__main__':
         queue_behaviour=True
     )
 
-    graph = tensorflow.get_default_graph()
-    agent = Agent(mario_model, graph)
+    debug_logger_thread = DebugLoggerThread()
+    debug_logger_thread.start()
+
+    agent = Agent(mario_model)
 
     policy = RandomPolicy()
 
-    train(agent, MemoryConvolutionViewer(replay_memory, graph, conv_model), policy)
-
+    train(AgentConvolutionDebug(agent, debug_logger_thread),
+          MemoryLogger(replay_memory, debug_logger_thread),
+          policy)
 
     save_model(mario_model)

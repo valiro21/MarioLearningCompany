@@ -75,7 +75,7 @@ class ExperienceReplay(object):
             updated_score = old_score + self.alpha * new_score
         return updated_score
 
-    def train(self, model, graph):
+    def train(self, model):
         has_uninitialized = any(filter(lambda x: x < 0, self.actions))
 
         num_choices = self._memory_idx if has_uninitialized else self.max_size
@@ -111,13 +111,12 @@ class ExperienceReplay(object):
 
             y[yidx, action] = updated_score
 
-        with graph.as_default():
-            model.fit(
-                x=self.states[sample],
-                y=y,
-                epochs=self.model_train_epochs,
-                batch_size=self.model_batch_size,
-                verbose=0
-            )
+        model.fit(
+            x=self.states[sample],
+            y=y,
+            epochs=self.model_train_epochs,
+            batch_size=self.model_batch_size,
+            verbose=0
+        )
 
         self.time += 1

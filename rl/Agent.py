@@ -3,12 +3,13 @@ import numpy as np
 
 
 class Agent(object):
-    def __init__(self, model, graph):
+    def __init__(self, model):
         self.model = model
-        self._graph = graph
+
+    def _compute_scores(self, observation):
+        return self.model.predict(observation)[0]
 
     def train(self, env, memory, policy, observe_steps=10):
-
         done = False
         info = {}
         observation = env.reset()
@@ -23,19 +24,18 @@ class Agent(object):
             np.copyto(last_observation, observation)
             observation, reward, done, info = env.step(action)
 
-            with self._graph.as_default():
-                scores = self.model.predict(observation)[0]
+            scores = self._compute_scores(observation)
 
-                memory.add(
-                    last_observation,
-                    reward,
-                    scores,
-                    observation,
-                    done
-                )
+            memory.add(
+                last_observation,
+                reward,
+                scores,
+                observation,
+                done
+            )
 
-                if memory.is_full() or memory.size() >= observe_steps:
-                    memory.train(self.model, self._graph)
+            if memory.is_full() or memory.size() >= observe_steps:
+                memory.train(self.model)
         env.close()
 
         return info
