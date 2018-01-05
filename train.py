@@ -33,14 +33,14 @@ def train(agent, memory, policy, iterations=50,
 
 
 if __name__ == '__main__':
-    mario_model = build_model()
-    # mario_model = load_model()
+    # mario_model = build_model()
+    mario_model = load_model()
 
     replay_memory = ExperienceReplay(
-        max_size=1000,
+        max_size=10000,
         gamma=0.8,
         train_epochs=1,
-        sample_size=30,
+        sample_size=50,
         queue_behaviour=True
     )
 
@@ -49,12 +49,14 @@ if __name__ == '__main__':
 
     agent = Agent(mario_model)
 
-    policy = RandomPolicy(epsilon=1., epsilon_decay=0.001, epsilon_min=0.1)
+    policy = RandomPolicy(epsilon=1., epsilon_decay=0.0001, epsilon_min=0.1, reset_on_level_change=True)
 
     # agent = AgentConvolutionDebug(agent, debug_logger_thread, layers=[0])
 
     train(agent,
-          MemoryLogger(replay_memory, debug_logger_thread),
-          policy)
+          MemoryLogger(replay_memory, debug_logger_thread, log_training=False),
+          policy,
+          initial_level=LEVELS[17],
+          iterations=2000)
 
     save_model(mario_model)
