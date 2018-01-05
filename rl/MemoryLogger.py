@@ -4,8 +4,10 @@ from rl.CustomEnv import get_action
 from rl.DebugLoggerThread import DebugLoggerThread
 
 
-def _log_move_details(state, reward, scores, next_state, is_final_state):
+def _log_move_details(state, reward, scores, chosen_action, next_state, is_final_state):
     print("Reward:", reward)
+    action_name = get_action(chosen_action)[1]
+    print("Chosen action", action_name)
     max_values_argmax = scores.argsort()[-4:][::-1]
     print("Best 4 values:")
     for idx in max_values_argmax:
@@ -30,14 +32,15 @@ class MemoryLogger(object):
         self._memory = memory
         self._debug_logger_thread = debug_logger_thread
 
-    def add(self, state, reward, scores, next_state, is_final_state):
-        self._memory.add(state, reward, scores, next_state, is_final_state)
+    def add(self, state, reward, scores, chosen_action, next_state, is_final_state):
+        self._memory.add(state, reward, scores, chosen_action, next_state, is_final_state)
 
         self._debug_logger_thread.run_on_thread(
             _log_move_details,
             state,
             reward,
             scores,
+            chosen_action,
             next_state,
             is_final_state
         )

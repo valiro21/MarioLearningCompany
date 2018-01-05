@@ -40,10 +40,10 @@ if __name__ == '__main__':
     # mario_model = load_model()
 
     replay_memory = ExperienceReplay(
-        max_size=100,
-        alpha=0.001,
+        max_size=300,
+        alpha=0.0001,
         alpha_decay_function=alpha_decay,
-        gamma=0.95,
+        gamma=0.8,
         train_epochs=1,
         sample_size=15,
         queue_behaviour=True

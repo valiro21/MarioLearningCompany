@@ -43,13 +43,13 @@ class ExperienceReplay(object):
         self.states = np.zeros(shape=((self.max_size,) + game_image_shape[1:]))
         self.next_states = np.zeros(shape=((self.max_size,) + game_image_shape[1:]))
 
-    def add(self, state, reward, scores, next_state, is_final_state):
+    def add(self, state, reward, scores, chosen_action, next_state, is_final_state):
         if self.states is None:
             self._initialize(state.shape)
 
         self.states[self._memory_idx] = state
         self.next_states[self._memory_idx] = next_state
-        self.actions[self._memory_idx] = np.argmax(scores)
+        self.actions[self._memory_idx] = chosen_action
         self.rewards[self._memory_idx] = reward
         self.is_next_final_state[self._memory_idx] = is_final_state
 

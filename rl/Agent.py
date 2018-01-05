@@ -30,6 +30,7 @@ class Agent(object):
                 last_observation,
                 reward,
                 scores,
+                action,
                 observation,
                 done
             )
