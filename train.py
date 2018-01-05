@@ -30,22 +30,15 @@ def train(agent, memory, policy, iterations=50,
             save_model(agent.model)
 
 
-def alpha_decay(a, t):
-    print("Alpha:", a)
-    return a
-
-
 if __name__ == '__main__':
     mario_model = build_model()
     # mario_model = load_model()
 
     replay_memory = ExperienceReplay(
-        max_size=300,
-        alpha=0.0001,
-        alpha_decay_function=alpha_decay,
+        max_size=1000,
         gamma=0.8,
         train_epochs=1,
-        sample_size=15,
+        sample_size=30,
         queue_behaviour=True
     )
 

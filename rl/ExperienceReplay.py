@@ -6,8 +6,7 @@ from rl.CustomEnv import get_action
 
 
 class ExperienceReplay(object):
-    def __init__(self, max_size=100, alpha=0.2,
-                 alpha_decay_function=None,
+    def __init__(self, max_size=100,
                  gamma=0.7, sample_size=5,
                  train_epochs=1, batch_size=None,
                  queue_behaviour=True):
@@ -15,8 +14,6 @@ class ExperienceReplay(object):
         self._size = 0
         self._memory_idx = 0
         self.time = 0
-        self.alpha = alpha
-        self._alpha_decay_function = alpha_decay_function
         self.gamma = gamma
         self.observations = None
         self._queue_behaviour = queue_behaviour
@@ -67,12 +64,11 @@ class ExperienceReplay(object):
             self._memory_idx = random.randint(0, self.max_size - 1)
 
     def _compute_new_score(self, scores, action, reward, next_score, is_final_state):
-        old_score = scores[action]
         if is_final_state:
             updated_score = reward
         else:
-            new_score = np.clip(reward + self.gamma * next_score - old_score, -1., 1.)
-            updated_score = old_score + self.alpha * new_score
+            new_score = reward + self.gamma * next_score
+            updated_score = new_score
         return updated_score
 
     def train(self, model):
@@ -96,7 +92,6 @@ class ExperienceReplay(object):
         )
         y = model.predict(self.states[sample])
 
-        self.alpha = self._alpha_decay_function(self.alpha, self.time)
         for yidx, val in enumerate(zip(sample, next_scores)):
             idx, next_score = val
 
