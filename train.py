@@ -49,7 +49,9 @@ if __name__ == '__main__':
 
     policy = RandomPolicy(epsilon=1., epsilon_decay=0.001, epsilon_min=0.1)
 
-    train(AgentConvolutionDebug(agent, debug_logger_thread),
+    debug_agent = AgentConvolutionDebug(agent, debug_logger_thread, layers=[0, 2])
+
+    train(debug_agent,
           MemoryLogger(replay_memory, debug_logger_thread),
           policy)
 
