@@ -1,36 +1,60 @@
+import keras
+import tensorflow
 from keras import Sequential, optimizers
-from keras.layers import Conv2D, MaxPooling2D, Dense, Flatten, Dropout, SpatialDropout2D, regularizers, initializers
+from keras.layers import Conv2D, Dense, Flatten, Dropout, SpatialDropout2D
 from keras.models import model_from_json
 
 
 def build_model():
-    # Input size: 224x256x3
+    # Input size: 8x224x256
+    conv_model = Sequential()
+    conv_model.add(
+        Conv2D(
+            filters=3,
+            kernel_size=(4, 4),
+            input_shape=(1, 224, 256),
+            strides=(4, 4),
+            padding="same",
+            data_format='channels_first',
+            activation='relu'
+        )
+    )
+
+    conv_model.add(
+        SpatialDropout2D(
+            0.1
+        )
+    )
+
     model = Sequential()
+    model.add(conv_model)
+
+    model.add(
+        Conv2D(
+            filters=3,
+            kernel_size=(4, 4),
+            input_shape=(3, 56, 64),
+            strides=(4, 4),
+            padding="same",
+            data_format='channels_first',
+            activation='relu'
+        )
+    )
+
+    model.add(
+        SpatialDropout2D(
+            0.1
+        )
+    )
+
     model.add(
         Conv2D(
             filters=32,
-            kernel_size=(8, 8),
-            input_shape=(224, 256, 1),
-            strides=(4, 4),
-            padding="same",
-            data_format='channels_last',
-            activation='relu'
-        )
-    )
-    model.add(
-        SpatialDropout2D(
-            0.1
-        )
-    )
-
-    model.add(
-        Conv2D(
-            filters=64,
             kernel_size=(4, 4),
-            input_shape=(56, 64, 32),
+            input_shape=(3, 14, 16),
             strides=(2, 2),
             padding="same",
-            data_format='channels_last',
+            data_format='channels_first',
             activation='relu'
         )
     )
@@ -43,10 +67,10 @@ def build_model():
 
     model.add(
         Conv2D(
-            filters=64,
+            filters=32,
             kernel_size=(3, 3),
-            input_shape=(14, 16, 64),
-            data_format='channels_last',
+            input_shape=(32, 7, 8),
+            data_format='channels_first',
             activation='relu'
         )
     )
@@ -57,7 +81,7 @@ def build_model():
 
     model.add(
         Dropout(
-            0.5
+            0.2
         )
     )
 
@@ -71,15 +95,14 @@ def build_model():
 
     model.add(
         Dropout(
-            0.5
+            0.2
         )
     )
 
     model.add(
         Dense(
-            units=64,
-            kernel_initializer='random_uniform',
-            activation='sigmoid'
+            units=14,
+            kernel_initializer='random_uniform'
         )
     )
 
@@ -89,7 +112,15 @@ def build_model():
         metrics=['accuracy']
     )
 
-    return model
+    conv_model.compile(
+        optimizer=optimizers.SGD(lr=1),
+        loss='mse',
+        metrics=['accuracy']
+    )
+
+    model._make_predict_function()
+
+    return model, conv_model
 
 
 def save_model(model_to_save,
