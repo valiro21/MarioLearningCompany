@@ -104,7 +104,7 @@ def build_model():
     )
 
     model.compile(
-        optimizer=optimizers.SGD(lr=1),
+        optimizer=optimizers.RMSprop(lr=1),
         loss='mse',
         metrics=['accuracy']
     )
