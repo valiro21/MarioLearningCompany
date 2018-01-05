@@ -3,9 +3,13 @@ import matplotlib.pyplot as plt
 from skimage.transform import resize
 from keras import backend as K
 
+from rl.CustomEnv import normalize
+
 
 class AgentConvolutionDebug(object):
-    def __init__(self, agent, debug_logger_thread, layers=[0], width=224, height=256):
+    def __init__(self, agent, debug_logger_thread,
+                 layers=[0], show_network_input=True,
+                 width=224, height=256):
         self.__class__ = type(agent.__class__.__name__,
                               (self.__class__, agent.__class__),
                               {})
@@ -14,8 +18,10 @@ class AgentConvolutionDebug(object):
         self._agent = agent
         self._debug_logger_thread = debug_logger_thread
         self._layers = layers
+        self._num_images = len(layers) + (1 if show_network_input else 0)
         self._images = None
-        self._images_buffer = np.zeros(shape=(len(layers), width, height))
+        self._images_buffer = np.zeros(shape=(self._num_images, width, height))
+        self._show_network_input = show_network_input
 
     def _compute_scores(self, observation):
         model = self._agent.model
@@ -26,7 +32,10 @@ class AgentConvolutionDebug(object):
                                  outputs)
         model_outputs = get_outputs([observation, 0])
 
-        self._debug_logger_thread.run_on_thread(self.redraw, model_outputs[:-1])
+        to_draw = model_outputs[:-1]
+        if self._show_network_input:
+            to_draw = [observation] + to_draw
+        self._debug_logger_thread.run_on_thread(self.redraw, to_draw)
 
         return model_outputs[-1][0]
 
@@ -54,14 +63,14 @@ class AgentConvolutionDebug(object):
                                   ]
 
                     max_value = np.max(conv_frames[num_images * row + col])
-                    imageholder[:] = resize(conv_frames[num_images * row + col] / max_value, (im_width, im_height))
+                    imageholder[:] = resize(normalize(conv_frames[num_images * row + col]), (im_width, im_height))
 
                     y_offset += im_height
                 x_offset += im_width
 
             if self._images is None:
                 plt.ion()
-                self._images = [None] * len(self._layers)
+                self._images = [None] * self._num_images
 
             if self._images[idx] is None:
                 plt.figure()

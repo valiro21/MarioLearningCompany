@@ -1,4 +1,5 @@
 import numpy as np
+from skimage.transform import resize
 
 
 class FrameBuffer(object):
@@ -21,10 +22,13 @@ def rgb2gray(rgb):
     return np.dot(rgb[..., :3], [0.299, 0.587, 0.114]).reshape(((1,) + rgb.shape[:-1]))
 
 
-def conver_for_network(observation):
-    # Convert to grayscale and normalize
-    observation = rgb2gray(observation) / 255.
-    return observation
+def normalize(array):
+    a_min = np.min(array)
+    a_max = np.max(array)
+
+    if a_min == a_max:
+        return np.zeros(array.shape)
+    return (array - a_min) / (a_max - a_min)
 
 
 def get_action(action):
@@ -49,18 +53,27 @@ def get_action(action):
 
 
 class CustomEnv(object):
-    def __init__(self, env, frame_buffer_size=4):
+    def __init__(self, env, frame_buffer_size=4, width=224, height=256):
         self.__class__ = type(env.__class__.__name__,
                               (self.__class__, env.__class__),
                               {})
         self.__dict__ = env.__dict__
         self._env = env
         self._frame_buffer = FrameBuffer(frame_buffer_size=frame_buffer_size)
+        self._width = width
+        self._height = height
+
+    def convert_for_network(self, observation):
+        # Convert to grayscale and normalize
+        observation = resize(normalize(observation), (self._width, self._height))
+
+        observation = rgb2gray(observation)
+        return observation
 
     def reset(self):
         observation = self._env.reset()
 
-        observation = conver_for_network(observation)
+        observation = self.convert_for_network(observation)
 
         return observation.reshape(((1,) + observation.shape))
 
@@ -68,7 +81,7 @@ class CustomEnv(object):
         action = get_action(action)[0]
         observation, reward, done, info = self._env.step(action)
 
-        observation = conver_for_network(observation)
+        observation = self.convert_for_network(observation)
 
         self._frame_buffer.add(observation, reward)
 
