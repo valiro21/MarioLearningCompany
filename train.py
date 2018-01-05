@@ -3,7 +3,6 @@ import gym
 import ppaquette_gym_super_mario
 
 from consts import LEVELS
-import matplotlib.pyplot as plt
 
 from models.neural_network import build_model, save_model, load_model
 from rl.Agent import Agent
@@ -20,7 +19,10 @@ def train(agent, memory, policy, iterations=50,
           save_on_iteration=True):
     level = random.choice(LEVELS) if initial_level is None else initial_level
     for _ in range(iterations):
-        env = CustomEnv(gym.make(level), frame_buffer_size=1)
+        env = CustomEnv(gym.make(level),
+                        frame_buffer_size=1,
+                        width=84,
+                        height=84)
         last_info = agent.train(env, memory, policy)
 
         if change_level and last_info['life'] > 0:
@@ -49,9 +51,9 @@ if __name__ == '__main__':
 
     policy = RandomPolicy(epsilon=1., epsilon_decay=0.001, epsilon_min=0.1)
 
-    debug_agent = AgentConvolutionDebug(agent, debug_logger_thread, layers=[0])
+    # agent = AgentConvolutionDebug(agent, debug_logger_thread, layers=[0])
 
-    train(debug_agent,
+    train(agent,
           MemoryLogger(replay_memory, debug_logger_thread),
           policy)
 

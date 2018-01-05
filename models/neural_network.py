@@ -11,8 +11,8 @@ def build_model():
     model.add(
         Conv2D(
             filters=16,
-            kernel_size=(4, 4),
-            input_shape=(1, 224, 256),
+            kernel_size=(8, 8),
+            input_shape=(1, 84, 84),
             strides=(4, 4),
             padding="same",
             data_format='channels_first',
@@ -28,27 +28,9 @@ def build_model():
 
     model.add(
         Conv2D(
-            filters=25,
+            filters=32,
             kernel_size=(4, 4),
-            input_shape=(16, 56, 64),
-            strides=(4, 4),
-            padding="same",
-            data_format='channels_first',
-            activation='relu'
-        )
-    )
-
-    model.add(
-        SpatialDropout2D(
-            0.1
-        )
-    )
-
-    model.add(
-        Conv2D(
-            filters=36,
-            kernel_size=(4, 4),
-            input_shape=(25, 14, 16),
+            input_shape=(16, 21, 21),
             strides=(2, 2),
             padding="same",
             data_format='channels_first',
@@ -64,9 +46,9 @@ def build_model():
 
     model.add(
         Conv2D(
-            filters=49,
+            filters=64,
             kernel_size=(3, 3),
-            input_shape=(36, 7, 8),
+            input_shape=(32, 16, 16),
             data_format='channels_first',
             activation='relu'
         )

@@ -3,8 +3,8 @@ from skimage.transform import resize
 
 
 class FrameBuffer(object):
-    def __init__(self, frame_buffer_size=1):
-        self.frames = np.zeros((1, frame_buffer_size, 224, 256))
+    def __init__(self, frame_buffer_size=1, width=224, height=256):
+        self.frames = np.zeros((1, frame_buffer_size, width, height))
         self.rewards = np.zeros(frame_buffer_size)
         self._frames_buffer_size = frame_buffer_size
 
@@ -59,7 +59,7 @@ class CustomEnv(object):
                               {})
         self.__dict__ = env.__dict__
         self._env = env
-        self._frame_buffer = FrameBuffer(frame_buffer_size=frame_buffer_size)
+        self._frame_buffer = FrameBuffer(frame_buffer_size=frame_buffer_size, width=width, height=height)
         self._width = width
         self._height = height
 

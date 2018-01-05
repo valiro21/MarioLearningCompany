@@ -8,8 +8,8 @@ from rl.CustomEnv import normalize
 
 class AgentConvolutionDebug(object):
     def __init__(self, agent, debug_logger_thread,
-                 layers=[0], show_network_input=True,
-                 width=224, height=256):
+                 layers=[0], show_network_input=False,
+                 width=84, height=84):
         self.__class__ = type(agent.__class__.__name__,
                               (self.__class__, agent.__class__),
                               {})
