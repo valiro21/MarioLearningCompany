@@ -36,16 +36,20 @@ class ExperienceReplay(object):
     def is_full(self):
         return self._full
 
-    def _initialize(self, game_image_shape):
-        self.states = np.zeros(shape=((self.max_size,) + game_image_shape[1:]))
-        self.next_states = np.zeros(shape=((self.max_size,) + game_image_shape[1:]))
+    def _initialize(self, idx, game_image_shape):
+        self.states[idx] = np.zeros(shape=((self.max_size,) + game_image_shape[1:]))
+        self.next_states[idx] = np.zeros(shape=((self.max_size,) + game_image_shape[1:]))
 
     def add(self, state, reward, scores, chosen_action, next_state, is_final_state):
         if self.states is None:
-            self._initialize(state.shape)
+            self.states = [None] * len(state)
+            self.next_states = [None] * len(state)
+            for idx, item in enumerate(state):
+                self._initialize(idx, item.shape)
 
-        self.states[self._memory_idx] = state
-        self.next_states[self._memory_idx] = next_state
+        for idx, item in enumerate(zip(state, next_state)):
+            self.states[idx][self._memory_idx] = item[0]
+            self.next_states[idx][self._memory_idx] = item[1]
         self.actions[self._memory_idx] = chosen_action
         self.rewards[self._memory_idx] = reward
         self.is_next_final_state[self._memory_idx] = is_final_state
@@ -84,13 +88,20 @@ class ExperienceReplay(object):
 
         sample = random.sample(range(num_choices), sample_size)
 
+        next_states_info = []
+        for item in self.states:
+            next_states_info.append(item[sample])
         next_scores = np.max(
             model.predict(
-                self.next_states[sample]
+                next_states_info
             ),
             axis=1
         )
-        y = model.predict(self.states[sample])
+
+        states_info = []
+        for item in self.states:
+            states_info.append(item[sample])
+        y = model.predict(states_info)
 
         for yidx, val in enumerate(zip(sample, next_scores)):
             idx, next_score = val
@@ -107,7 +118,7 @@ class ExperienceReplay(object):
             y[yidx, action] = updated_score
 
         model.fit(
-            x=self.states[sample],
+            x=states_info,
             y=y,
             epochs=self.model_train_epochs,
             batch_size=self.model_batch_size,

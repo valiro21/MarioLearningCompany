@@ -1,14 +1,22 @@
 import keras
 import tensorflow
 from keras import Sequential, optimizers
-from keras.layers import Conv2D, Dense, Flatten, Dropout, SpatialDropout2D
+from keras.layers import Conv2D, Dense, Flatten, Dropout, SpatialDropout2D, Merge, Concatenate
 from keras.models import model_from_json
 
 
-def build_model():
+def build_model(history_size=4):
     # Input size: 1x224x256
-    model = Sequential()
-    model.add(
+    action_history = Sequential()
+    action_history.add(
+        Dense(
+            input_shape=(history_size*6,),
+            units=history_size*2
+        )
+    )
+
+    frame = Sequential()
+    frame.add(
         Conv2D(
             filters=16,
             kernel_size=(8, 8),
@@ -20,13 +28,13 @@ def build_model():
         )
     )
 
-    model.add(
+    frame.add(
         SpatialDropout2D(
             0.1
         )
     )
 
-    model.add(
+    frame.add(
         Conv2D(
             filters=32,
             kernel_size=(4, 4),
@@ -38,13 +46,13 @@ def build_model():
         )
     )
 
-    model.add(
+    frame.add(
         SpatialDropout2D(
             0.1
         )
     )
 
-    model.add(
+    frame.add(
         Conv2D(
             filters=64,
             kernel_size=(3, 3),
@@ -54,8 +62,14 @@ def build_model():
         )
     )
 
-    model.add(
+    frame.add(
         Flatten()
+    )
+
+    model = Sequential()
+
+    model.add(
+        Merge([action_history, frame], mode='concat')
     )
 
     model.add(

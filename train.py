@@ -18,27 +18,31 @@ def train(agent, memory, policy, iterations=50,
           initial_level=None, change_level=True,
           save_on_iteration=True):
     level = random.choice(LEVELS) if initial_level is None else initial_level
+    policy.game_changed()
     for _ in range(iterations):
         env = CustomEnv(gym.make(level),
                         frame_buffer_size=1,
                         width=84,
-                        height=84)
+                        height=84,
+                        action_history_size=1)
         last_info = agent.train(env, memory, policy)
 
         if change_level and last_info['life'] > 0:
             level = random.choice(LEVELS)
+            policy.game_changed()
 
         if save_on_iteration:
             save_model(agent.model)
 
 
 if __name__ == '__main__':
-    # mario_model = build_model()
-    mario_model = load_model()
+    action_history_size = 1
+    mario_model = build_model(history_size=action_history_size)
+    # mario_model = load_model()
 
     replay_memory = ExperienceReplay(
         max_size=10000,
-        gamma=0.8,
+        gamma=0.9,
         train_epochs=1,
         sample_size=50,
         queue_behaviour=True
@@ -49,7 +53,7 @@ if __name__ == '__main__':
 
     agent = Agent(mario_model)
 
-    policy = RandomPolicy(epsilon=1., epsilon_decay=0.0001, epsilon_min=0.1, reset_on_level_change=True)
+    policy = RandomPolicy(epsilon=1., epsilon_decay=0.00001, epsilon_min=0.01)
 
     # agent = AgentConvolutionDebug(agent, debug_logger_thread, layers=[0])
 

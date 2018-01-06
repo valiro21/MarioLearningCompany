@@ -1,6 +1,6 @@
 import random
 import numpy as np
-
+import copy
 
 class Agent(object):
     def __init__(self, model):
@@ -13,15 +13,18 @@ class Agent(object):
         done = False
         info = {}
         observation = env.reset()
-        last_observation = np.zeros(shape=observation.shape)
+        last_observation = []
+        for item in observation:
+            last_observation.append(np.zeros(shape=item.shape))
         scores = self.model.predict(observation)
 
         env.render()
-        policy.game_changed()
+        policy.game_loaded()
         while not done:
             action = policy.get_action(scores)
 
-            np.copyto(last_observation, observation)
+            for dst, src in zip(last_observation, observation):
+                np.copyto(dst, src)
             observation, reward, done, info = env.step(action)
 
             scores = self._compute_scores(observation)
