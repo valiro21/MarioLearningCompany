@@ -1,7 +1,7 @@
 from termcolor import cprint
 
 from rl.CustomEnv import get_action
-from rl.DebugLoggerThread import DebugLoggerThread
+from rl.AsyncMethodExecutor import AsyncMethodExecutor
 
 
 def _log_move_details(state, reward, scores, chosen_action, next_state, is_final_state):

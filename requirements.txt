@@ -5,5 +5,5 @@ h5py
 gym
 git+https://github.com/ppaquette/gym-super-mario
 termcolor
-skimage
+scikit-image
 matplotlib
