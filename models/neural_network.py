@@ -1,5 +1,5 @@
 from keras import Sequential, optimizers, Input
-from keras.layers import Conv2D, Dense, Flatten, Merge, BatchNormalization, Reshape
+from keras.layers import Conv2D, Dense, Flatten, Merge, BatchNormalization, Reshape, MaxPooling2D, Dropout
 from keras.models import model_from_json
 
 
@@ -14,7 +14,7 @@ def build_history_model(history_size=4):
 
     model.add(
         Conv2D(
-            filters=64,
+            filters=16,
             kernel_size=(3, 3),
             input_shape=(history_size, 32, 32),
             strides=(1, 1),
@@ -26,30 +26,12 @@ def build_history_model(history_size=4):
     model.add(BatchNormalization())
 
     model.add(
-        Conv2D(
-            filters=64,
-            kernel_size=(8, 8),
-            input_shape=(64, 32, 32),
-            strides=(4, 4),
-            padding="same",
-            data_format='channels_first',
-            activation='relu'
+        MaxPooling2D(
+            pool_size=(4, 4),
+            data_format='channels_first'
         )
     )
-    model.add(BatchNormalization())
 
-    model.add(
-        Conv2D(
-            filters=64,
-            kernel_size=(4, 4),
-            input_shape=(64, 8, 8),
-            strides=(2, 2),
-            padding="same",
-            data_format='channels_first',
-            activation='relu'
-        )
-    )
-    model.add(BatchNormalization())
     model.add(Flatten())
 
     return model
@@ -59,9 +41,9 @@ def build_frame_model():
     model = Sequential()
     model.add(
         Conv2D(
-            filters=128,
+            filters=16,
             kernel_size=(3, 3),
-            input_shape=(1, 64, 64),
+            input_shape=(3, 128, 128),
             strides=(1, 1),
             padding="same",
             data_format='channels_first',
@@ -71,43 +53,31 @@ def build_frame_model():
     model.add(BatchNormalization())
 
     model.add(
-        Conv2D(
-            filters=256,
-            kernel_size=(8, 8),
-            input_shape=(128, 32, 32),
-            strides=(4, 4),
-            padding="same",
-            data_format='channels_first',
-            activation='relu'
+        MaxPooling2D(
+            pool_size=(4, 4),
+            data_format='channels_first'
         )
     )
-    model.add(BatchNormalization())
 
     model.add(
         Conv2D(
-            filters=512,
-            kernel_size=(4, 4),
-            input_shape=(256, 8, 8),
-            strides=(2, 2),
+            filters=32,
+            kernel_size=(5, 5),
+            input_shape=(16, 32, 32),
+            strides=(1, 1),
             padding="same",
             data_format='channels_first',
             activation='relu'
         )
     )
-    model.add(BatchNormalization())
 
     model.add(
-        Conv2D(
-            filters=512,
-            kernel_size=(4, 4),
-            input_shape=(512, 4, 4),
-            strides=(2, 2),
-            padding="same",
-            data_format='channels_first',
-            activation='relu'
+        MaxPooling2D(
+            pool_size=(2, 2),
+            data_format='channels_first'
         )
     )
-    model.add(BatchNormalization())
+
     model.add(Flatten())
 
     return model
@@ -125,13 +95,15 @@ def build_model(history_size=4, learning_rate=0.001):
               mode='concat')
     )
 
+    model.add(Dropout(0.4))
     model.add(Dense(units=512, activation='relu'))
     model.add(BatchNormalization())
+    model.add(Dropout(0.4))
 
-    model.add(Dense(units=14))
+    model.add(Dense(units=14, use_bias=False))
 
     model.compile(
-        optimizer=optimizers.SGD(lr=learning_rate),
+        optimizer=optimizers.RMSprop(lr=learning_rate),
         loss='mse',
         metrics=['accuracy']
     )
@@ -166,7 +138,7 @@ def load_model(model_file="./model.json",
     loaded_model.load_weights(weights_file)
 
     loaded_model.compile(
-        optimizer=optimizers.SGD(lr=learning_rate),
+        optimizer=optimizers.RMSprop(lr=learning_rate),
         loss='mse',
         metrics=['accuracy']
     )

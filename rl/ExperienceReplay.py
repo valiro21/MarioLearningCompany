@@ -75,7 +75,7 @@ class ExperienceReplay(object):
         if self._full and not self._queue_behaviour:
             self._memory_idx = random.randint(0, self.max_size - 1)
 
-    def _compute_new_score(self, scores, action, reward, next_score, is_final_state):
+    def _compute_new_score(self, time, scores, action, reward, next_score, is_final_state):
         if is_final_state:
             updated_score = reward
         else:
@@ -116,6 +116,7 @@ class ExperienceReplay(object):
 
             action = self.actions[idx]
             updated_score = self._compute_new_score(
+                self.time,
                 y[yidx],
                 action,
                 self.rewards[idx],

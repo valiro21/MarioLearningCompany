@@ -90,9 +90,11 @@ class CustomEnv(object):
 
     def convert_for_network(self, observation):
         # Convert to grayscale and normalize
-        observation = resize(normalize(observation), (self._width, self._height))
-
-        observation = rgb2gray(observation)
+        observation = resize(observation, (self._width, self._height))
+        observation = np.swapaxes(observation, 1, 2)
+        observation= np.swapaxes(observation, 0, 1)
+        observation /= 255.
+        # observation = rgb2gray(observation)
         return observation
 
     def reset(self):
@@ -114,7 +116,9 @@ class CustomEnv(object):
 #            reward = reward / (1. + (self.last_info['time'] - info['time']))
         self.last_info = copy(info)
 
-        reward = reward / 2.
+        if reward > 0:
+            reward = reward * info['time'] / 800.
+        reward = np.clip(reward, -1, 1)
 
         observation = self.convert_for_network(observation)
 

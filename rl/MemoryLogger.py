@@ -4,17 +4,17 @@ from rl.CustomEnv import get_action
 from rl.AsyncMethodExecutor import AsyncMethodExecutor
 
 
-def _log_train_details(scores, action, reward, updated_score):
+def _log_train_details(old_score, action, reward, next_score, updated_score):
     color = 'red'
-    if float(updated_score) > float(scores[action]):
+    if float(updated_score) > float(old_score):
         color = 'green'
 
     action_name = get_action(action)[1]
-    cprint("%s: %s -> %s, reward: %s" % (action_name, float(scores[action]), float(updated_score), reward), color)
+    cprint("%s: %s -> %s, next_score: %s, reward: %s, diff: %s" % (action_name, float(old_score), float(updated_score), float(next_score), reward, abs(updated_score - old_score)), color)
 
 
 class MemoryLogger(object):
-    def __init__(self, memory, debug_logger_thread, log_action=True, log_training=True, log_action_statistics=False):
+    def __init__(self, memory, debug_logger_thread, log_action=1, log_training=1, log_action_statistics=False):
         self.__class__ = type(memory.__class__.__name__,
                               (self.__class__, memory.__class__),
                               {})
@@ -46,7 +46,7 @@ class MemoryLogger(object):
     def add(self, state, reward, scores, chosen_action, next_state, is_final_state):
         self._memory.add(state, reward, scores, chosen_action, next_state, is_final_state)
 
-        if self._log_action:
+        if self._log_action is not None and self._memory.time % self._log_action == 0:
             self._debug_logger_thread.run_on_thread(
                 self._log_move_details,
                 state,
@@ -57,15 +57,17 @@ class MemoryLogger(object):
                 is_final_state
             )
 
-    def _compute_new_score(self, scores, action, reward, next_score, is_final_state):
-        updated_score = self._memory._compute_new_score(scores, action, reward, next_score, is_final_state)
+    def _compute_new_score(self, time, scores, action, reward, next_score, is_final_state):
+        old_score = scores[action]
+        updated_score = self._memory._compute_new_score(time, scores, action, reward, next_score, is_final_state)
 
-        if self._log_training:
+        if self._log_training is not None and time % self._log_training == 0:
             self._debug_logger_thread.run_on_thread(
                 _log_train_details,
-                scores,
+                old_score,
                 action,
                 reward,
+                next_score,
                 updated_score
             )
 

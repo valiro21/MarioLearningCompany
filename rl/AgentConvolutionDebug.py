@@ -26,7 +26,7 @@ class AgentConvolutionDebug(object):
     def _compute_scores(self, observation):
         model = self._agent.model
 
-        outputs = [model.layers[0].layers[1].layers[layer].output for layer in self._layers]
+        outputs = [model.layers[0].layers[2].layers[layer].output for layer in self._layers]
         outputs = outputs + [model.layers[-1].output]
         get_outputs = K.function(model.inputs + [K.learning_phase()],
                                  outputs)
