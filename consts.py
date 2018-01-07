@@ -1,5 +1,6 @@
 LEVELS = [
     "ppaquette/meta-SuperMarioBros-v0",
+    "ppaquette/SuperMarioBros-1-1-v0",
     "ppaquette/SuperMarioBros-1-2-v0",
     "ppaquette/SuperMarioBros-1-3-v0",
     "ppaquette/SuperMarioBros-1-4-v0",

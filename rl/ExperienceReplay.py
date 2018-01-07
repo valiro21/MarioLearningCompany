@@ -31,6 +31,9 @@ class ExperienceReplay(object):
         self.is_next_final_state = [False] * max_size
         self.actions_stats = {}
 
+    def allow_training(self):
+        return True
+
     def size(self):
         return self._size
 
@@ -94,7 +97,7 @@ class ExperienceReplay(object):
         sample = random.sample(range(num_choices), sample_size)
 
         next_states_info = []
-        for item in self.states:
+        for item in self.next_states:
             next_states_info.append(item[sample])
         next_scores = np.max(
             model.predict(

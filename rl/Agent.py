@@ -44,7 +44,7 @@ class Agent(object):
                 done
             )
 
-            if memory.is_full() or memory.size() >= observe_steps:
+            if memory.allow_training() and (memory.is_full() or memory.size() >= observe_steps):
                 memory.train(self.model)
         env.close()
 
@@ -87,7 +87,7 @@ class Agent(object):
                 done
             )
 
-            if memory.is_full() or memory.size() >= observe_steps:
+            if memory.allow_training() and (memory.is_full() or memory.size() >= observe_steps):
                 if not train_started:
                     threading.Thread(target=_train_memory).start()
                     train_started = True

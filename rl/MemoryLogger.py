@@ -4,8 +4,6 @@ from rl.CustomEnv import get_action
 from rl.AsyncMethodExecutor import AsyncMethodExecutor
 
 
-
-
 def _log_train_details(scores, action, reward, updated_score):
     color = 'red'
     if updated_score > scores[action]:
@@ -30,6 +28,7 @@ class MemoryLogger(object):
     def _log_move_details(self, state, reward, scores, chosen_action, next_state, is_final_state):
         print("Reward:", reward)
         action_name = get_action(chosen_action)[1]
+        print("Memory used: %s / %s" % (self._memory.size() , self._memory.max_size))
         print("Chosen action", action_name)
         max_values_argmax = scores.argsort()[-4:][::-1]
         print("Best 4 values:")

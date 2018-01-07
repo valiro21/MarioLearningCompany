@@ -10,6 +10,7 @@ from rl.Agent import Agent
 from rl.CustomEnv import CustomEnv
 from rl.AsyncMethodExecutor import AsyncMethodExecutor
 from rl.AgentConvolutionDebug import AgentConvolutionDebug
+from rl.FullMemory import FullMemory
 from rl.HumanPlayerPolicy import HumanPlayerPolicy
 from rl.RandomPolicy import RandomPolicy
 from rl.ExperienceReplay import ExperienceReplay
@@ -45,13 +46,13 @@ if __name__ == '__main__':
     seed = 12312413232
     random.seed(seed)
     history_size = 6
-    learning_rate = 0.00001
+    learning_rate = 0.0001
     mario_model = build_model(history_size=history_size, learning_rate=learning_rate)
     # mario_model = load_model(learning_rate=learning_rate)
 
     replay_memory = ExperienceReplay(
-        max_size=10000,
-        gamma=0.75,
+        max_size=500,
+        gamma=0.90,
         train_epochs=1,
         sample_size=50,
         queue_behaviour=True
@@ -62,8 +63,8 @@ if __name__ == '__main__':
 
     agent = Agent(mario_model)
 
-    policy = HumanPlayerPolicy()
-    # policy = RandomPolicy(epsilon=1., epsilon_decay=0.00001, epsilon_min=0.01)
+    # policy = HumanPlayerPolicy()
+    policy = RandomPolicy(epsilon=1., epsilon_decay=0.0001, epsilon_min=0.1)
 
     # agent = AgentConvolutionDebug(agent, debug_logger_thread, layers=[0])
 
@@ -71,7 +72,7 @@ if __name__ == '__main__':
           MemoryLogger(replay_memory, debug_logger_thread, log_training=False),
           policy,
           history_size=history_size,
-          initial_level=LEVELS[16],
+          initial_level=LEVELS[1],
           iterations=2000)
 
     save_model(mario_model)

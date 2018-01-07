@@ -110,9 +110,11 @@ class CustomEnv(object):
         controller_state = get_action(action)[0]
         observation, reward, done, info = self._env.step(controller_state)
         
-        if self.last_info is not None:
-            reward = reward / (1. + (self.last_info['time'] - info['time']))
+#        if self.last_info is not None:
+#            reward = reward / (1. + (self.last_info['time'] - info['time']))
         self.last_info = copy(info)
+
+        reward = reward / 2.
 
         observation = self.convert_for_network(observation)
 
