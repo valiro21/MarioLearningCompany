@@ -4,14 +4,6 @@ from rl.CustomEnv import get_action
 from rl.DebugLoggerThread import DebugLoggerThread
 
 
-def _log_move_details(state, reward, scores, chosen_action, next_state, is_final_state):
-    print("Reward:", reward)
-    action_name = get_action(chosen_action)[1]
-    print("Chosen action", action_name)
-    max_values_argmax = scores.argsort()[-4:][::-1]
-    print("Best 4 values:")
-    for idx in max_values_argmax:
-        print("%s, %s -> %s" % (idx, get_action(idx)[1], scores[idx]))
 
 
 def _log_train_details(scores, action, reward, updated_score):
@@ -24,7 +16,7 @@ def _log_train_details(scores, action, reward, updated_score):
 
 
 class MemoryLogger(object):
-    def __init__(self, memory, debug_logger_thread, log_action=True, log_training=True):
+    def __init__(self, memory, debug_logger_thread, log_action=True, log_training=True, log_action_statistics=False):
         self.__class__ = type(memory.__class__.__name__,
                               (self.__class__, memory.__class__),
                               {})
@@ -33,13 +25,31 @@ class MemoryLogger(object):
         self._debug_logger_thread = debug_logger_thread
         self._log_training = log_training
         self._log_action = log_action
+        self._log_action_statistics = log_action_statistics
+
+    def _log_move_details(self, state, reward, scores, chosen_action, next_state, is_final_state):
+        print("Reward:", reward)
+        action_name = get_action(chosen_action)[1]
+        print("Chosen action", action_name)
+        max_values_argmax = scores.argsort()[-4:][::-1]
+        print("Best 4 values:")
+        for idx in max_values_argmax:
+            print("%s, %s -> %s" % (idx, get_action(idx)[1], scores[idx]))
+        
+        if self._log_action_statistics:
+            print("Memory stats:")
+            stats_map = self._memory.actions_stats
+            stats = sorted(list(map(lambda x: (stats_map[x], x), stats_map)), reverse=True)
+            for num_entries, action in stats:
+                action_name = get_action(action)[1]
+                print("%s: %s" % (action_name, num_entries))
 
     def add(self, state, reward, scores, chosen_action, next_state, is_final_state):
         self._memory.add(state, reward, scores, chosen_action, next_state, is_final_state)
 
         if self._log_action:
             self._debug_logger_thread.run_on_thread(
-                _log_move_details,
+                self._log_move_details,
                 state,
                 reward,
                 scores,

@@ -16,7 +16,7 @@ class RandomPolicy(object):
     def game_loaded(self):
         if self.reset_on_game_load:
             self.current_epsilon = self.initial_epsilon
-        
+
     def game_changed(self):
         if self.reset_on_game_changed:
             self.current_epsilon = self.initial_epsilon
@@ -29,6 +29,6 @@ class RandomPolicy(object):
             action = np.argmax(scores)
 
         self.current_epsilon = max(self.epsilon_min,
-                                   self.current_epsilon * (1 - self.epsilon_decay))
+                                   self.current_epsilon - self.epsilon_decay)
         print("Epsilon:", self.current_epsilon)
         return action

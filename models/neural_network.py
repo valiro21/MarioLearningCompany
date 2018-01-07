@@ -1,106 +1,137 @@
-import keras
-import tensorflow
-from keras import Sequential, optimizers
-from keras.layers import Conv2D, Dense, Flatten, Dropout, SpatialDropout2D, Merge, Concatenate
+from keras import Sequential, optimizers, Input
+from keras.layers import Conv2D, Dense, Flatten, Merge, BatchNormalization, Reshape
 from keras.models import model_from_json
 
 
-def build_model(history_size=4):
-    # Input size: 1x224x256
-    action_history = Sequential()
-    action_history.add(
-        Dense(
-            input_shape=(history_size*6,),
-            units=history_size*2
+def build_actions_model(history_size=4):
+    model = Sequential()
+    model.add(Reshape((history_size*6,), input_shape=(history_size*6,)))
+    return model
+
+
+def build_history_model(history_size=4):
+    model = Sequential()
+
+    model.add(
+        Conv2D(
+            filters=64,
+            kernel_size=(3, 3),
+            input_shape=(history_size, 32, 32),
+            strides=(1, 1),
+            padding="same",
+            data_format='channels_first',
+            activation='relu'
         )
     )
+    model.add(BatchNormalization())
 
-    frame = Sequential()
-    frame.add(
+    model.add(
         Conv2D(
-            filters=16,
+            filters=64,
             kernel_size=(8, 8),
-            input_shape=(1, 84, 84),
+            input_shape=(64, 32, 32),
             strides=(4, 4),
             padding="same",
             data_format='channels_first',
             activation='relu'
         )
     )
+    model.add(BatchNormalization())
 
-    frame.add(
-        SpatialDropout2D(
-            0.1
-        )
-    )
-
-    frame.add(
+    model.add(
         Conv2D(
-            filters=32,
+            filters=64,
             kernel_size=(4, 4),
-            input_shape=(16, 21, 21),
+            input_shape=(64, 8, 8),
             strides=(2, 2),
             padding="same",
             data_format='channels_first',
             activation='relu'
         )
     )
+    model.add(BatchNormalization())
+    model.add(Flatten())
 
-    frame.add(
-        SpatialDropout2D(
-            0.1
-        )
-    )
+    return model
 
-    frame.add(
+
+def build_frame_model():
+    model = Sequential()
+    model.add(
         Conv2D(
-            filters=64,
+            filters=128,
             kernel_size=(3, 3),
-            input_shape=(32, 16, 16),
+            input_shape=(1, 64, 64),
+            strides=(1, 1),
+            padding="same",
             data_format='channels_first',
             activation='relu'
         )
     )
+    model.add(BatchNormalization())
 
-    frame.add(
-        Flatten()
+    model.add(
+        Conv2D(
+            filters=256,
+            kernel_size=(8, 8),
+            input_shape=(128, 32, 32),
+            strides=(4, 4),
+            padding="same",
+            data_format='channels_first',
+            activation='relu'
+        )
     )
+    model.add(BatchNormalization())
+
+    model.add(
+        Conv2D(
+            filters=512,
+            kernel_size=(4, 4),
+            input_shape=(256, 8, 8),
+            strides=(2, 2),
+            padding="same",
+            data_format='channels_first',
+            activation='relu'
+        )
+    )
+    model.add(BatchNormalization())
+
+    model.add(
+        Conv2D(
+            filters=512,
+            kernel_size=(4, 4),
+            input_shape=(512, 4, 4),
+            strides=(2, 2),
+            padding="same",
+            data_format='channels_first',
+            activation='relu'
+        )
+    )
+    model.add(BatchNormalization())
+    model.add(Flatten())
+
+    return model
+
+
+def build_model(history_size=4, learning_rate=0.001):
+    action_model = build_actions_model(history_size=history_size)
+    history_model = build_history_model(history_size=history_size)
+    frame_model = build_frame_model()
 
     model = Sequential()
 
     model.add(
-        Merge([action_history, frame], mode='concat')
+        Merge([action_model, history_model, frame_model],
+              mode='concat')
     )
 
-    model.add(
-        Dropout(
-            0.2
-        )
-    )
+    model.add(Dense(units=512, activation='relu'))
+    model.add(BatchNormalization())
 
-    model.add(
-        Dense(
-            units=256,
-            kernel_initializer='random_uniform',
-            activation='relu'
-        )
-    )
-
-    model.add(
-        Dropout(
-            0.2
-        )
-    )
-
-    model.add(
-        Dense(
-            units=14,
-            kernel_initializer='random_uniform'
-        )
-    )
+    model.add(Dense(units=14))
 
     model.compile(
-        optimizer=optimizers.RMSprop(lr=0.0001),
+        optimizer=optimizers.SGD(lr=learning_rate),
         loss='mse',
         metrics=['accuracy']
     )
@@ -123,7 +154,8 @@ def save_model(model_to_save,
 
 
 def load_model(model_file="./model.json",
-               weights_file="./model.h5"):
+               weights_file="./model.h5",
+               learning_rate=0.001):
 
     # load json and create model
     json_file = open(model_file, 'r')
@@ -134,7 +166,7 @@ def load_model(model_file="./model.json",
     loaded_model.load_weights(weights_file)
 
     loaded_model.compile(
-        optimizer=optimizers.RMSprop(lr=0.0001),
+        optimizer=optimizers.SGD(lr=learning_rate),
         loss='mse',
         metrics=['accuracy']
     )

@@ -8,7 +8,7 @@ from rl.CustomEnv import normalize
 
 class AgentConvolutionDebug(object):
     def __init__(self, agent, debug_logger_thread,
-                 layers=[0], show_network_input=False,
+                 layers=[0], show_network_input=True,
                  width=84, height=84):
         self.__class__ = type(agent.__class__.__name__,
                               (self.__class__, agent.__class__),
@@ -26,15 +26,15 @@ class AgentConvolutionDebug(object):
     def _compute_scores(self, observation):
         model = self._agent.model
 
-        outputs = [model.layers[layer].output for layer in self._layers]
+        outputs = [model.layers[0].layers[1].layers[layer].output for layer in self._layers]
         outputs = outputs + [model.layers[-1].output]
-        get_outputs = K.function([model.layers[0].input, K.learning_phase()],
+        get_outputs = K.function(model.inputs + [K.learning_phase()],
                                  outputs)
-        model_outputs = get_outputs([observation, 0])
+        model_outputs = get_outputs(observation + [0])
 
         to_draw = model_outputs[:-1]
         if self._show_network_input:
-            to_draw = [observation] + to_draw
+            to_draw = [observation[1]] + to_draw
         self._debug_logger_thread.run_on_thread(self.redraw, to_draw)
 
         return model_outputs[-1][0]

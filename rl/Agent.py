@@ -1,6 +1,5 @@
-import random
 import numpy as np
-import copy
+
 
 class Agent(object):
     def __init__(self, model):

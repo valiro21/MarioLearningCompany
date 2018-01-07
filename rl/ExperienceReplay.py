@@ -29,6 +29,7 @@ class ExperienceReplay(object):
         self.actions = [-1] * max_size
         self.rewards = [0] * max_size
         self.is_next_final_state = [False] * max_size
+        self.actions_stats = {}
 
     def size(self):
         return self._size
@@ -41,6 +42,7 @@ class ExperienceReplay(object):
         self.next_states[idx] = np.zeros(shape=((self.max_size,) + game_image_shape[1:]))
 
     def add(self, state, reward, scores, chosen_action, next_state, is_final_state):
+        self.actions_stats[chosen_action] = self.actions_stats.get(chosen_action, 0) + 1
         if self.states is None:
             self.states = [None] * len(state)
             self.next_states = [None] * len(state)
@@ -50,6 +52,9 @@ class ExperienceReplay(object):
         for idx, item in enumerate(zip(state, next_state)):
             self.states[idx][self._memory_idx] = item[0]
             self.next_states[idx][self._memory_idx] = item[1]
+        if self._full:
+            old_action = self.actions[self._memory_idx]
+            self.actions_stats[old_action] = self.actions_stats[old_action] - 1
         self.actions[self._memory_idx] = chosen_action
         self.rewards[self._memory_idx] = reward
         self.is_next_final_state[self._memory_idx] = is_final_state
