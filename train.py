@@ -8,8 +8,9 @@ from consts import LEVELS
 from models.neural_network import build_model, save_model, load_model
 from rl.Agent import Agent
 from rl.CustomEnv import CustomEnv
-from rl.DebugLoggerThread import DebugLoggerThread
+from rl.AsyncMethodExecutor import AsyncMethodExecutor
 from rl.AgentConvolutionDebug import AgentConvolutionDebug
+from rl.HumanPlayerPolicy import HumanPlayerPolicy
 from rl.RandomPolicy import RandomPolicy
 from rl.ExperienceReplay import ExperienceReplay
 from rl.MemoryLogger import MemoryLogger
@@ -56,12 +57,13 @@ if __name__ == '__main__':
         queue_behaviour=True
     )
 
-    debug_logger_thread = DebugLoggerThread()
+    debug_logger_thread = AsyncMethodExecutor()
     debug_logger_thread.start()
 
     agent = Agent(mario_model)
 
-    policy = RandomPolicy(epsilon=1., epsilon_decay=0.00001, epsilon_min=0.1)
+    policy = HumanPlayerPolicy()
+    # policy = RandomPolicy(epsilon=1., epsilon_decay=0.00001, epsilon_min=0.01)
 
     # agent = AgentConvolutionDebug(agent, debug_logger_thread, layers=[0])
 
