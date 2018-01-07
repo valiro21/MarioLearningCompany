@@ -15,9 +15,9 @@ class Agent(object):
         if policy.allows_async_training():
             return self._train_async(env, memory, policy, **kwargs)
         else:
-            return self._train(env, memory, policy, **kwargs)
+            return self._train_sync(env, memory, policy, **kwargs)
 
-    def _train(self, env, memory, policy, observe_steps=10):
+    def _train_sync(self, env, memory, policy, observe_steps=10):
         done = False
         info = {}
         observation = env.reset()
@@ -64,7 +64,7 @@ class Agent(object):
         env.render()
         policy.game_loaded()
 
-        def _train():
+        def _train_memory():
             while True:
                 if memory.is_full() or memory.size() >= observe_steps:
                     memory.train(self.model)
@@ -78,6 +78,8 @@ class Agent(object):
                 np.copyto(dst, src)
             observation, reward, done, info = env.step(action)
 
+            scores = self._compute_scores(observation)
+
             memory.add(
                 last_observation,
                 reward,
@@ -89,7 +91,7 @@ class Agent(object):
 
             if memory.is_full() or memory.size() >= observe_steps:
                 if not train_started:
-                    threading.Thread(target=_train).start()
+                    threading.Thread(target=_train_memory).start()
                     train_started = True
         env.close()
 

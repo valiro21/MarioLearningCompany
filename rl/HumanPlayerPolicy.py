@@ -63,6 +63,7 @@ class HumanPlayerPolicy(Policy):
             if value[0] == action_arr:
                 action = key
 
+        print('action = {}'.format(action))
         # action might be 0 in the end
 
         return action

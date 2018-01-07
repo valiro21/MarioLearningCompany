@@ -27,7 +27,7 @@ def train(agent, memory, policy, iterations=50,
                         height=84,
                         action_history_size=1)
 
-        last_info = agent._train(env, memory, policy)
+        last_info = agent.train(env, memory, policy)
 
         if change_level and last_info['life'] > 0:
             level = random.choice(LEVELS)
@@ -39,8 +39,8 @@ def train(agent, memory, policy, iterations=50,
 
 if __name__ == '__main__':
     action_history_size = 1
-    mario_model = build_model(history_size=action_history_size)
-    # mario_model = load_model()
+    # mario_model = build_model(history_size=action_history_size)
+    mario_model = load_model()
 
     replay_memory = ExperienceReplay(
         max_size=10000,
@@ -55,15 +55,15 @@ if __name__ == '__main__':
 
     agent = Agent(mario_model)
 
-    # policy = HumanPlayerPolicy()
-    policy = RandomPolicy(epsilon=1., epsilon_decay=0.00001, epsilon_min=0.01)
+    policy = HumanPlayerPolicy()
+    # policy = RandomPolicy(epsilon=1., epsilon_decay=0.00001, epsilon_min=0.01)
 
     # agent = AgentConvolutionDebug(agent, debug_logger_thread, layers=[0])
 
     train(agent,
           MemoryLogger(replay_memory, debug_logger_thread, log_training=False),
           policy,
-          initial_level=LEVELS[17],
+          initial_level=LEVELS[16],
           iterations=2000)
 
     save_model(mario_model)
