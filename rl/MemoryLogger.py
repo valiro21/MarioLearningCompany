@@ -6,11 +6,11 @@ from rl.AsyncMethodExecutor import AsyncMethodExecutor
 
 def _log_train_details(scores, action, reward, updated_score):
     color = 'red'
-    if updated_score > scores[action]:
+    if float(updated_score) > float(scores[action]):
         color = 'green'
 
     action_name = get_action(action)[1]
-    cprint("%s: %s -> %s, reward: %s" % (action_name, scores[action], updated_score, reward), color)
+    cprint("%s: %s -> %s, reward: %s" % (action_name, float(scores[action]), float(updated_score), reward), color)
 
 
 class MemoryLogger(object):
