@@ -122,6 +122,9 @@ class CustomEnv(object):
         self.last_info = copy(info)
         print(info)
         
+        if info['life'] == 0:
+            reward = -1
+
         terminate_iteration = False
         if self._last_distance_deltas is not None:
             self._last_distance_deltas = np.roll(self._last_distance_deltas, -1)

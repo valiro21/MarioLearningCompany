@@ -30,8 +30,8 @@ def train(agent, memory, policy, iterations=50,
         env = CustomEnv(env,
                         frame_width=224,
                         frame_height=224,
-                        history_width=32,
-                        history_height=32,
+                        history_width=64,
+                        history_height=64,
                         frame_history_size=frame_history_size,
                         actions_history_size=actions_history_size)
         last_info = agent.train(env, memory, policy)
@@ -48,11 +48,11 @@ def train(agent, memory, policy, iterations=50,
 
 
 if __name__ == '__main__':
-    seed = 12312413221
+    seed = 123123218
     random.seed(seed)
-    actions_history_size = 6
+    actions_history_size = 4
     frame_history_size = 2
-    learning_rate = 0.0005
+    learning_rate = 0.0001
     mario_model = build_model(actions_history_size=actions_history_size,
                               frame_history_size=frame_history_size,
                               learning_rate=learning_rate)
@@ -82,7 +82,7 @@ if __name__ == '__main__':
     agent = Agent(mario_model)
 
     # policy = HumanPlayerPolicy()
-    policy = RandomPolicy(epsilon=0.55, epsilon_decay=0.000055, epsilon_min=0.15, dropout=0.7)
+    policy = RandomPolicy(epsilon=0.75, epsilon_decay=0.00055, epsilon_min=0.15, dropout=0.1)
     # policy = LevelRandomPolicy(epsilon=1., epsilon_min=0.1)
     # agent = AgentConvolutionDebug(agent, debug_logger_thread, layers=[2, 3], show_network_input=False)
 

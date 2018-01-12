@@ -17,18 +17,27 @@ def build_history_model(history_size=4):
         Conv2D(
             filters=16,
             kernel_size=(3, 3),
-            input_shape=(history_size, 32, 32),
+            input_shape=(history_size, 64, 64),
             strides=(1, 1),
             padding="same",
             data_format='channels_first',
             activation='relu'
         )
     )
-    model.add(BatchNormalization())
-
+    model.add(
+        Conv2D(
+            filters=16,
+            kernel_size=(3, 3),
+            strides=(1, 1),
+            padding="same",
+            data_format='channels_first',
+            activation='relu'
+        )
+    )
     model.add(
         MaxPooling2D(
-            pool_size=(4, 4),
+            pool_size=(2, 2),
+            strides=(2, 2),
             data_format='channels_first'
         )
     )
@@ -37,18 +46,64 @@ def build_history_model(history_size=4):
         Conv2D(
             filters=32,
             kernel_size=(3, 3),
-            input_shape=(history_size, 32, 32),
             strides=(1, 1),
             padding="same",
             data_format='channels_first',
             activation='relu'
         )
     )
-    model.add(BatchNormalization())
-
+    model.add(
+        Conv2D(
+            filters=32,
+            kernel_size=(3, 3),
+            strides=(1, 1),
+            padding="same",
+            data_format='channels_first',
+            activation='relu'
+        )
+    )
     model.add(
         MaxPooling2D(
             pool_size=(2, 2),
+            strides=(2, 2),
+            data_format='channels_first'
+        )
+    )
+    
+    model.add(
+        Conv2D(
+            filters=64,
+            kernel_size=(3, 3),
+            strides=(1, 1),
+            padding="same",
+            data_format='channels_first',
+            activation='relu'
+        )
+    )
+    model.add(
+        Conv2D(
+            filters=64,
+            kernel_size=(3, 3),
+            strides=(1, 1),
+            padding="same",
+            data_format='channels_first',
+            activation='relu'
+        )
+    )
+    model.add(
+        Conv2D(
+            filters=64,
+            kernel_size=(3, 3),
+            strides=(2, 2),
+            padding="same",
+            data_format='channels_first',
+            activation='relu'
+        )
+    )
+    model.add(
+        MaxPooling2D(
+            pool_size=(2, 2),
+            strides=(2, 2),
             data_format='channels_first'
         )
     )
@@ -200,69 +255,6 @@ def build_frame_model():
     return model
 
 
-def build_frame_model_VGG16():
-    # frame_model = VGG16(weights='imagenet',
-    #                     include_top=False,
-    #                     input_shape=(224, 224, 3))
-    model = Sequential()
-    model.add(
-        Conv2D(
-            filters=32, 
-            kernel_size=(3, 3),
-            input_shape=(224, 224, 3),
-            padding="same",
-            strides=(1, 1),
-            activation='relu'
-        )
-    )
-    model.add(
-        Conv2D(
-            filters=32, 
-            kernel_size=(3, 3),
-            input_shape=(224, 224, 3),
-            padding="same",
-            strides=(1, 1),
-            activation='relu'
-        )
-    )
-    model.add(
-        MaxPooling2D(
-            pool_size=(2, 2),
-            strides=(2, 2)
-        )
-    )
-
-    model.add(
-        Conv2D(
-            filters=64, 
-            kernel_size=(3, 3),
-            padding="same",
-            strides=(1, 1),
-            activation='relu'
-        )
-    )
-    model.add(
-        Conv2D(
-            filters=64, 
-            kernel_size=(3, 3),
-            padding="same",
-            strides=(2, 2),
-            activation='relu'
-        )
-    )
-    model.add(
-        MaxPooling2D(
-            pool_size=(2, 2),
-            strides=(2, 2)
-        )
-    )
-     
-    model.add(Flatten())
-
-    # flattened_model = x = Flatten()(frame_model.output)
-    # return Model(input=frame_model.input, output=flattened_model)
-    return model
-
 def build_model(frame_history_size=2, actions_history_size=4, learning_rate=0.001):
     action_model = build_actions_model(history_size=actions_history_size)
     history_model = build_history_model(history_size=frame_history_size)
@@ -275,13 +267,13 @@ def build_model(frame_history_size=2, actions_history_size=4, learning_rate=0.00
               mode='concat')
     )
 
-    model.add(Dense(units=1024, activation='relu'))
+    model.add(Dense(units=512, activation='relu'))
     model.add(Dropout(0.5))
-
+     
     model.add(Dense(units=14, use_bias=False))
 
     model.compile(
-        optimizer=optimizers.SGD(lr=learning_rate, momentum=0.7, nesterov=True),
+        optimizer=optimizers.SGD(lr=learning_rate, decay=1e-6, momentum=0.4, nesterov=True),
         loss='mse',
         metrics=['accuracy']
     )
@@ -316,7 +308,7 @@ def load_model(model_file="./model.json",
     loaded_model.load_weights(weights_file)
 
     loaded_model.compile(
-        optimizer=optimizers.SGD(lr=learning_rate, decay=1e-6, momentum=0.7, nesterov=True),
+        optimizer=optimizers.SGD(lr=learning_rate, decay=1e-6, momentum=0.4, nesterov=True),
         loss='mse',
         metrics=['accuracy']
     )
