@@ -1,0 +1,44 @@
+PID_FILE='./train.pid'
+EMULATOR_PID_FETCH_CMD='ps aux | grep fceux | grep -v grep | awk "{print \$2}"'
+
+case "$1" in
+    start)
+        if [ ! -e "$PID_FILE" ]; then
+            DISPLAY=:10 python3 -u ./train.py >output.log 2>error.log &
+            echo $!>$PID_FILE
+        else
+            echo "A pid file already exists! Could not start training."
+        fi
+    ;;
+    stop)
+        if [ -e "$PID_FILE" ]; then
+            kill `cat $PID_FILE`
+            rm "$PID_FILE"
+        fi
+        
+        # Kill emulator
+        EMULATOR_PID=$(bash -c "$EMULATOR_PID_FETCH_CMD")
+        if [[ "$EMULATOR_PID" != "" ]]; then
+            kill -9 $EMULATOR_PID
+        fi
+    ;;
+    restart)
+        $0 stop
+        $0 start
+    ;;
+    status)
+        if [ -e "$PID_FILE" ]; then
+            echo "Model is training! PID: `cat $PID_FILE`"
+            EMULATOR_PID=$(bash -c "$EMULATOR_PID_FETCH_CMD")
+            if [[ "$EMULATOR_PID" != "" ]]; then
+                echo "Number of running emulators: `echo $EMULATOR_PID | wc -l`"
+            else
+                echo "No emulator instance is active"
+            fi
+        else
+            echo "No model is currently training."
+        fi
+    ;;
+    *) 
+        echo "Usage: $0 {start|stop|status|restart}"
+esac

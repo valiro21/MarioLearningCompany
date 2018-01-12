@@ -24,6 +24,7 @@ class MemoryLogger(object):
         self._log_training = log_training
         self._log_action = log_action
         self._log_action_statistics = log_action_statistics
+        self._add_time = 0
 
     def _log_move_details(self, state, reward, scores, chosen_action, next_state, is_final_state):
         print("Reward:", reward)
@@ -46,7 +47,7 @@ class MemoryLogger(object):
     def add(self, state, reward, scores, chosen_action, next_state, is_final_state):
         self._memory.add(state, reward, scores, chosen_action, next_state, is_final_state)
 
-        if self._log_action is not None and self._memory.time % self._log_action == 0:
+        if self._log_action is not None and self._add_time % self._log_action == 0:
             self._debug_logger_thread.run_on_thread(
                 self._log_move_details,
                 state,
@@ -56,6 +57,7 @@ class MemoryLogger(object):
                 next_state,
                 is_final_state
             )
+        self._add_time += 1
 
     def _compute_new_score(self, time, scores, action, reward, next_score, is_final_state):
         old_score = scores[action]

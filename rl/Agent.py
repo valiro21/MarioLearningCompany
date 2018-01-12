@@ -15,7 +15,7 @@ class Agent(object):
         else:
             return self._train_sync(env, memory, policy, **kwargs)
 
-    def _train_sync(self, env, memory, policy, observe_steps=10):
+    def _train_sync(self, env, memory, policy):
         done = False
         info = {}
         observation = env.reset()
@@ -44,13 +44,13 @@ class Agent(object):
                 done
             )
 
-            if memory.allow_training() and (memory.is_full() or memory.size() >= observe_steps):
+            if memory.allow_training():
                 memory.train(self.model)
         env.close()
 
         return info
 
-    def _train_async(self, env, memory, policy, observe_steps=10):
+    def _train_async(self, env, memory, policy):
         done = False
         info = {}
         observation = env.reset()
@@ -64,8 +64,7 @@ class Agent(object):
 
         def _train_memory():
             while True:
-                if memory.is_full() or memory.size() >= observe_steps:
-                    memory.train(self.model)
+                memory.train(self.model)
 
         train_started = False
 
@@ -87,10 +86,9 @@ class Agent(object):
                 done
             )
 
-            if memory.allow_training() and (memory.is_full() or memory.size() >= observe_steps):
-                if not train_started:
-                    threading.Thread(target=_train_memory).start()
-                    train_started = True
+            if not train_started:
+                threading.Thread(target=_train_memory).start()
+                train_started = True
         env.close()
 
         return info

@@ -8,6 +8,7 @@ from rl.CustomEnv import get_action
 class ExperienceReplay(object):
     def __init__(self, max_size=100,
                  gamma=0.7, sample_size=5,
+                 observe_steps=10, train_interval=1,
                  train_epochs=1, batch_size=None,
                  queue_behaviour=True):
         self.max_size = max_size
@@ -30,9 +31,11 @@ class ExperienceReplay(object):
         self.rewards = [0] * max_size
         self.is_next_final_state = [False] * max_size
         self.actions_stats = {}
+        self.observe_steps = observe_steps
+        self.train_interval = train_interval
 
     def allow_training(self):
-        return True
+        return self.is_full() or self.size() >= self.observe_steps
 
     def size(self):
         return self._size
@@ -83,15 +86,23 @@ class ExperienceReplay(object):
             updated_score = new_score
         return updated_score
 
-    def train(self, model):
+    def train(self, model, verbose=0):
+        self.time += 1
+        
+        if not self.allow_training():
+            return
+
+        if self.time % self.train_interval != 0:
+            return
+
         has_uninitialized = any(filter(lambda x: x < 0, self.actions))
 
         num_choices = self._memory_idx if has_uninitialized else self.max_size
         if num_choices == 0:
             return
 
-        sample_size = self.sample_size
-        if num_choices < self.sample_size:
+        sample_size = self.size() if self.sample_size is None else self.sample_size
+        if num_choices < sample_size:
             sample_size = num_choices
 
         sample = random.sample(range(num_choices), sample_size)
@@ -131,7 +142,6 @@ class ExperienceReplay(object):
             y=y,
             epochs=self.model_train_epochs,
             batch_size=self.model_batch_size,
-            verbose=0
+            verbose=1
         )
 
-        self.time += 1

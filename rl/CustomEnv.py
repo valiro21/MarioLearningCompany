@@ -2,29 +2,31 @@ import numpy as np
 from skimage.transform import resize
 from copy import copy
 
+
 class FrameBuffer(object):
-    def __init__(self, history_size=1,
+    def __init__(self, actions_history_size=4,
+                 frame_history_size=2,
                  frame_width=224, frame_height=256,
                  history_width=84, history_height=84):
         self.frame = np.zeros((1, frame_width, frame_height))
-        self.history = np.zeros((history_size, history_width, history_height))
-        self.rewards = np.zeros(history_size + 1)
-        self.controller_states = np.zeros((history_size, 6))
+        self.history = np.zeros((frame_history_size, history_width, history_height))
+        self.rewards = np.zeros(frame_history_size + 1)
+        self.controller_states = np.zeros((actions_history_size, 6))
 
     def add(self, frame, reward, controller_state):
         self.history = np.roll(self.history, 1, axis=0)
         self.history[-1] = resize(self.frame, output_shape=((1,) + self.history.shape[1:]))
         self.frame = frame
-        self.rewards = np.roll(self.rewards, 1)
+        self.rewards = np.roll(self.rewards, -1)
         self.rewards[-1] = reward
-        self.controller_states = np.roll(self.controller_states, 1)
+        self.controller_states = np.roll(self.controller_states, -1, axis=0)
         self.controller_states[-1] = controller_state
 
     def get_reward(self):
         return self.rewards[-1]
 
     def get_last_controller_states(self):
-        return self.controller_states.flatten().reshape((1, self.controller_states.size))
+        return np.expand_dims(self.controller_states.flatten(), 0)
 
     def get_last_frame(self):
         return np.expand_dims(self.frame, 0)
@@ -71,7 +73,8 @@ class CustomEnv(object):
     def __init__(self, env,
                  frame_width=224, frame_height=256,
                  history_width=84, history_height=84,
-                 history_size=1):
+                 max_nonmovement_frames=None,
+                 frame_history_size=1, actions_history_size=4):
         self.__class__ = type(env.__class__.__name__,
                               (self.__class__, env.__class__),
                               {})
@@ -82,24 +85,25 @@ class CustomEnv(object):
             frame_height=frame_height,
             history_width=history_width,
             history_height=history_height,
-            history_size=history_size
+            frame_history_size=frame_history_size,
+            actions_history_size=actions_history_size
         )
         self._width = frame_width
         self._height = frame_height
         self.last_info = None
+        self._last_distance_deltas = None
+        if max_nonmovement_frames is not None:
+            self._last_distance_deltas = np.full((max_nonmovement_frames,), 1)
 
     def convert_for_network(self, observation):
-        # Convert to grayscale and normalize
         observation = resize(observation, (self._width, self._height))
         observation = np.swapaxes(observation, 1, 2)
         observation= np.swapaxes(observation, 0, 1)
         observation /= 255.
-        # observation = rgb2gray(observation)
         return observation
 
     def reset(self):
         observation = self._env.reset()
-
         observation = self.convert_for_network(observation)
 
         self._frame_buffer.add(observation, 0, [0, 0, 0, 0, 0, 0])
@@ -111,10 +115,28 @@ class CustomEnv(object):
     def step(self, action):
         controller_state = get_action(action)[0]
         observation, reward, done, info = self._env.step(controller_state)
-        
-#        if self.last_info is not None:
-#            reward = reward / (1. + (self.last_info['time'] - info['time']))
+       
+        distance_delta = 0
+        if self.last_info is not None:
+            distance_delta = info['distance'] - self.last_info['distance']
         self.last_info = copy(info)
+        print(info)
+        
+        terminate_iteration = False
+        if self._last_distance_deltas is not None:
+            self._last_distance_deltas = np.roll(self._last_distance_deltas, -1)
+            self._last_distance_deltas[-1] = distance_delta
+
+            if np.sum(self._last_distance_deltas) <= 2:
+                terminate_iteration = True
+
+        if info['distance'] < 400 - info['time'] and info['time'] < 370:
+            terminate_iteration = True
+
+        if terminate_iteration:
+            done = True
+            info['distance'] = -1
+            reward = -1
 
         if reward > 0:
             reward = reward * info['time'] / 800.
@@ -127,5 +149,5 @@ class CustomEnv(object):
         observation = [self._frame_buffer.get_last_controller_states(),
                        self._frame_buffer.get_previous_frames(),
                        self._frame_buffer.get_last_frame()]
-
+        
         return observation, self._frame_buffer.get_reward(), done, info
