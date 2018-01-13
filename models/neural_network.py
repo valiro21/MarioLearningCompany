@@ -2,11 +2,19 @@ from keras import Sequential, optimizers, Input, Model
 from keras.layers import Conv2D, Dense, Flatten, Merge, BatchNormalization, Reshape, MaxPooling2D, Dropout
 from keras.models import model_from_json
 from keras.applications.vgg16 import VGG16
-
+from keras.initializers import VarianceScaling
 
 def build_actions_model(history_size=4):
     model = Sequential()
-    model.add(Reshape((history_size*6,), input_shape=(history_size*6,)))
+    model.add(
+        Dense(
+            units=16,
+            input_shape=(history_size*6,),
+            use_bias=False,
+            activation='relu',
+            kernel_initializer=VarianceScaling()
+        )
+    )
     return model
 
 
@@ -21,7 +29,8 @@ def build_history_model(history_size=4):
             strides=(1, 1),
             padding="same",
             data_format='channels_first',
-            activation='relu'
+            activation='relu',
+            kernel_initializer=VarianceScaling()
         )
     )
     model.add(
@@ -31,7 +40,8 @@ def build_history_model(history_size=4):
             strides=(1, 1),
             padding="same",
             data_format='channels_first',
-            activation='relu'
+            activation='relu',
+            kernel_initializer=VarianceScaling()
         )
     )
     model.add(
@@ -49,7 +59,8 @@ def build_history_model(history_size=4):
             strides=(1, 1),
             padding="same",
             data_format='channels_first',
-            activation='relu'
+            activation='relu',
+            kernel_initializer=VarianceScaling()
         )
     )
     model.add(
@@ -59,7 +70,8 @@ def build_history_model(history_size=4):
             strides=(1, 1),
             padding="same",
             data_format='channels_first',
-            activation='relu'
+            activation='relu',
+            kernel_initializer=VarianceScaling()
         )
     )
     model.add(
@@ -77,7 +89,8 @@ def build_history_model(history_size=4):
             strides=(1, 1),
             padding="same",
             data_format='channels_first',
-            activation='relu'
+            activation='relu',
+            kernel_initializer=VarianceScaling()
         )
     )
     model.add(
@@ -87,7 +100,8 @@ def build_history_model(history_size=4):
             strides=(1, 1),
             padding="same",
             data_format='channels_first',
-            activation='relu'
+            activation='relu',
+            kernel_initializer=VarianceScaling()
         )
     )
     model.add(
@@ -97,7 +111,8 @@ def build_history_model(history_size=4):
             strides=(2, 2),
             padding="same",
             data_format='channels_first',
-            activation='relu'
+            activation='relu',
+            kernel_initializer=VarianceScaling()
         )
     )
     model.add(
@@ -123,7 +138,8 @@ def build_frame_model():
             strides=(1, 1),
             padding="same",
             data_format='channels_first',
-            activation='relu'
+            activation='relu',
+            kernel_initializer=VarianceScaling()
         )
     )
     model.add(
@@ -133,7 +149,8 @@ def build_frame_model():
             strides=(1, 1),
             padding="same",
             data_format='channels_first',
-            activation='relu'
+            activation='relu',
+            kernel_initializer=VarianceScaling()
         )
     )
     model.add(
@@ -151,7 +168,8 @@ def build_frame_model():
             strides=(1, 1),
             padding="same",
             data_format='channels_first',
-            activation='relu'
+            activation='relu',
+            kernel_initializer=VarianceScaling()
         )
     )
     model.add(
@@ -162,7 +180,8 @@ def build_frame_model():
             strides=(1, 1),
             padding="same",
             data_format='channels_first',
-            activation='relu'
+            activation='relu',
+            kernel_initializer=VarianceScaling()
         )
     )
     model.add(
@@ -180,7 +199,8 @@ def build_frame_model():
             strides=(1, 1),
             padding="same",
             data_format='channels_first',
-            activation='relu'
+            activation='relu',
+            kernel_initializer=VarianceScaling()
         )
     )
     model.add(
@@ -190,7 +210,8 @@ def build_frame_model():
             strides=(1, 1),
             padding="same",
             data_format='channels_first',
-            activation='relu'
+            activation='relu',
+            kernel_initializer=VarianceScaling()
         )
     )
     model.add(
@@ -201,7 +222,8 @@ def build_frame_model():
             strides=(2, 2),
             padding="same",
             data_format='channels_first',
-            activation='relu'
+            activation='relu',
+            kernel_initializer=VarianceScaling()
         )
     )
     model.add(
@@ -219,7 +241,8 @@ def build_frame_model():
             strides=(1, 1),
             padding="same",
             data_format='channels_first',
-            activation='relu'
+            activation='relu',
+            kernel_initializer=VarianceScaling()
         )
     )
     model.add(
@@ -229,7 +252,8 @@ def build_frame_model():
             strides=(1, 1),
             padding="same",
             data_format='channels_first',
-            activation='relu'
+            activation='relu',
+            kernel_initializer=VarianceScaling()
         )
     )
     model.add(
@@ -240,7 +264,8 @@ def build_frame_model():
             strides=(2, 2),
             padding="same",
             data_format='channels_first',
-            activation='relu'
+            activation='relu',
+            kernel_initializer=VarianceScaling()
         )
     )
     model.add(
@@ -260,20 +285,38 @@ def build_model(frame_history_size=2, actions_history_size=4, learning_rate=0.00
     history_model = build_history_model(history_size=frame_history_size)
     frame_model = build_frame_model()
 
-    model = Sequential()
+    image_model = Sequential()
 
-    model.add(
-        Merge([action_model, history_model, frame_model],
+    image_model.add(
+        Merge([history_model, frame_model],
               mode='concat')
     )
 
-    model.add(Dense(units=512, activation='relu'))
-    model.add(Dropout(0.5))
+    image_model.add(
+        Dense(
+            units=512,
+            activation='relu',
+            kernel_initializer=VarianceScaling()
+        )
+    )
+    image_model.add(Dropout(0.5))
+
+    model = Sequential()
+    model.add(
+        Merge([action_model, image_model],
+              mode='concat')
+    )
      
-    model.add(Dense(units=14, use_bias=False))
+    model.add(
+        Dense(
+            units=14,
+            use_bias=False,
+            kernel_initializer=VarianceScaling()
+        )
+    )
 
     model.compile(
-        optimizer=optimizers.SGD(lr=learning_rate, decay=1e-6, momentum=0.4, nesterov=True),
+        optimizer=optimizers.RMSprop(lr=learning_rate),
         loss='mse',
         metrics=['accuracy']
     )
@@ -308,7 +351,7 @@ def load_model(model_file="./model.json",
     loaded_model.load_weights(weights_file)
 
     loaded_model.compile(
-        optimizer=optimizers.SGD(lr=learning_rate, decay=1e-6, momentum=0.4, nesterov=True),
+        optimizer=optimizers.RMSprop(lr=learning_rate),
         loss='mse',
         metrics=['accuracy']
     )
