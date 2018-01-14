@@ -4,7 +4,7 @@ EMULATOR_PID_FETCH_CMD='ps aux | grep fceux | grep -v grep | awk "{print \$2}"'
 case "$1" in
     start)
         if [ ! -e "$PID_FILE" ]; then
-            DISPLAY=:10 python3 -u ./train.py >output.log 2>error.log &
+            DISPLAY=:10 python3 -u ./train.py >>output.log 2>error.log &
             echo $!>$PID_FILE
         else
             echo "A pid file already exists! Could not start training."

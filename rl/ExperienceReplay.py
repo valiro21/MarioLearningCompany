@@ -53,7 +53,7 @@ class ExperienceReplay(object):
             self._ids_idx = list(range(len(self._ids)))
 
     def allow_training(self):
-        return True
+        return len(self._ids) >= self.sample_size
 
     def size(self):
         return len(self._ids)

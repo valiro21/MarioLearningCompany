@@ -25,13 +25,15 @@ def train(agent, memory, policy, iterations=50,
         env = gym.make(level)
 
         env = CustomEnv(env,
-                        frame_width=180,
-                        frame_height=180,
-                        history_width=64,
-                        history_height=64,
+                        frame_width=64,
+                        frame_height=64,
+                        history_width=32,
+                        history_height=32,
                         frame_history_size=frame_history_size,
                         actions_history_size=actions_history_size)
-        last_info = agent.train(env, memory, policy)
+        last_info, total_reward = agent.train(env, memory, policy)
+        print("Last info:", last_info)
+        print("Total reward:", total_reward)
 
         if change_level and last_info['life'] > 0 and last_info['distance'] != -1:
             level = random.choice(LEVELS)
@@ -48,8 +50,8 @@ if __name__ == '__main__':
     seed = 123123223
     random.seed(seed)
     actions_history_size = 6
-    frame_history_size = 6
-    learning_rate = 0.0001
+    frame_history_size = 4
+    learning_rate = 0.0004
     mario_model = build_model(actions_history_size=actions_history_size,
                               frame_history_size=frame_history_size,
                               learning_rate=learning_rate)
@@ -59,6 +61,7 @@ if __name__ == '__main__':
         max_size=1000000,
         gamma=0.9,
         sample_size=32,
+        database_file='cache/memory.db',
         should_pop_oldest=True,
         reuse_db=True
     )
@@ -77,7 +80,7 @@ if __name__ == '__main__':
     agent = Agent(mario_model)
 
     # policy = HumanPlayerPolicy()
-    policy = RandomPolicy(epsilon=0.75, epsilon_decay=0.000025, epsilon_min=0.20, dropout=0.1)
+    policy = RandomPolicy(epsilon=1., epsilon_decay=0.000008, epsilon_min=0.1, dropout=0.01)
     # policy = LevelRandomPolicy(epsilon=1., epsilon_min=0.1)
     # agent = AgentConvolutionDebug(agent, debug_logger_thread, layers=[2, 3], show_network_input=False)
 

@@ -28,12 +28,14 @@ class Agent(object):
 
         env.render()
         policy.game_loaded()
+        total_reward = 0.
         while not done:
             action = policy.get_action(scores)
 
             for dst, src in zip(last_observation, observation):
                 np.copyto(dst, src)
             observation, reward, done, info = env.step(action)
+            total_reward += reward
 
             scores = self._compute_scores(observation)
 
@@ -57,7 +59,7 @@ class Agent(object):
                 )
         env.close()
 
-        return info
+        return info, total_reward
 
     def _train_async(self, env, memory, policy,
                      batch_size=None, train_epoches=1,
