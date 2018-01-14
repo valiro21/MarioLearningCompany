@@ -1,7 +1,10 @@
+import random
+
 import numpy as np
 import sqlite3
 import pickle
 from contextlib import closing
+from blist import sortedlist
 
 
 class ExperienceReplay(object):
@@ -24,6 +27,8 @@ class ExperienceReplay(object):
         self._size = 0
         self._table_name = table_name
         self._database_connection = sqlite3.connect(database_file, isolation_level=None)
+        self._ids = sortedlist()
+        self._ids_idx = []
         self._init_db(reuse_db)
 
     def _init_db(self, reuse_db):
@@ -42,18 +47,19 @@ class ExperienceReplay(object):
                 % self._table_name
             )
 
-            self._size = cursor.execute(
-                'SELECT COUNT(*) FROM %s' % self._table_name
-            ).fetchone()[0]
+            data = cursor.execute('SELECT id FROM %s' % self._table_name).fetchall()
+            ids = [row[0] for row in data]
+            self._ids = sortedlist(ids)
+            self._ids_idx = list(range(len(self._ids)))
 
     def allow_training(self):
         return True
 
     def size(self):
-        return self._size
+        return len(self._ids)
 
     def is_full(self):
-        return self._size == self.max_size
+        return len(self._ids) == self.max_size
 
     @staticmethod
     def _to_sqlite_blob(obj):
@@ -70,10 +76,12 @@ class ExperienceReplay(object):
     def add(self, state, reward, action, next_state, is_final_state, scores):
         with closing(self._database_connection.cursor()) as cursor:
             if self.is_full():
-                if self._should_pop_oldest:
-                    cursor.execute('DELETE FROM %s ORDER BY id LIMIT 1;' % self._table_name)
-                else:
-                    cursor.execute('DELETE FROM %s ORDER BY RANDOM() LIMIT 1' % self._table_name)
+                id_to_delete = self._ids[0]
+                if not self._should_pop_oldest:
+                    id_to_delete = self._ids[random.randint(0, len(self._ids) - 1)]
+                cursor.execute('DELETE FROM %s WHERE id = ?;' % self._table_name, (id_to_delete, ))
+                self._ids.remove(id_to_delete)
+                self._ids_idx.pop()
             else:
                 self._size += 1
             pickled_data = tuple(map(ExperienceReplay._to_sqlite_blob, (state, reward, action, next_state, is_final_state)))
@@ -86,6 +94,9 @@ class ExperienceReplay(object):
                 pickled_data
             )
 
+            self._ids.add(cursor.lastrowid)
+            self._ids_idx.append(len(self._ids_idx))
+
     def _compute_new_score(self, time, scores, chosen_action, reward, next_score, is_final_state):
         if is_final_state:
             updated_score = reward
@@ -97,10 +108,13 @@ class ExperienceReplay(object):
     def get_train_data(self, model):
         self.time += 1
 
+        sample_idx = random.sample(self._ids_idx, self.sample_size)
+        ids = [self._ids[idx] for idx in sample_idx]
+        id_list = ",".join(map(str, ids))
+
         with closing(self._database_connection.cursor()) as cursor:
             sqlite_data = cursor.execute(
-                'SELECT * FROM %s ORDER BY RANDOM() LIMIT ?' % self._table_name,
-                (self.sample_size,)
+                'SELECT * FROM %s WHERE id IN (%s)' % (self._table_name, id_list)
             ).fetchall()
 
             if not self.allow_training():

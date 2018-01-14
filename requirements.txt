@@ -7,3 +7,4 @@ git+https://github.com/ppaquette/gym-super-mario
 termcolor
 scikit-image
 matplotlib
+blist

@@ -56,7 +56,7 @@ if __name__ == '__main__':
     # mario_model = load_model(learning_rate=learning_rate)
 
     replay_memory = ExperienceReplay(
-        max_size=10,
+        max_size=1000000,
         gamma=0.9,
         sample_size=32,
         should_pop_oldest=True,
