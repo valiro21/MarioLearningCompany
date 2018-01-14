@@ -13,6 +13,12 @@ class FrameBuffer(object):
         self.rewards = np.zeros(frame_history_size + 1)
         self.controller_states = np.zeros((actions_history_size, 6))
 
+    def reset(self):
+        self.frame.fill(0)
+        self.history.fill(0)
+        self.rewards.fill(0)
+        self.controller_states.fill(0)
+
     def add(self, frame, reward, controller_state):
         self.history = np.roll(self.history, 1, axis=0)
         self.history[-1] = resize(self.frame, output_shape=((1,) + self.history.shape[1:]))
@@ -106,6 +112,7 @@ class CustomEnv(object):
         observation = self._env.reset()
         observation = self.convert_for_network(observation)
 
+        self._frame_buffer.reset()
         self._frame_buffer.add(observation, 0, [0, 0, 0, 0, 0, 0])
 
         return [self._frame_buffer.get_last_controller_states(),

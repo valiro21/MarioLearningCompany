@@ -28,8 +28,8 @@ def train(agent, memory, policy, iterations=50,
         env = gym.make(level)
 
         env = CustomEnv(env,
-                        frame_width=224,
-                        frame_height=224,
+                        frame_width=180,
+                        frame_height=180,
                         history_width=64,
                         history_height=64,
                         frame_history_size=frame_history_size,
@@ -51,20 +51,19 @@ if __name__ == '__main__':
     seed = 123123223
     random.seed(seed)
     actions_history_size = 6
-    frame_history_size = 2
-    learning_rate = 0.00001
+    frame_history_size = 6
+    learning_rate = 0.0001
     mario_model = build_model(actions_history_size=actions_history_size,
                               frame_history_size=frame_history_size,
                               learning_rate=learning_rate)
     # mario_model = load_model(learning_rate=learning_rate)
 
     replay_memory = ExperienceReplay(
-        max_size=1200,
+        max_size=5000,
         gamma=0.9,
         train_epochs=1,
-        train_interval=280,
-        sample_size=None,
-        batch_size=200,
+        train_interval=1,
+        sample_size=32,
         queue_behaviour=True
     )
     
