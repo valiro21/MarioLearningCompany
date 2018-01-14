@@ -1,7 +1,6 @@
 import random
 import gym
 import ppaquette_gym_super_mario
-from ppaquette_gym_super_mario.wrappers import SetPlayingMode
 
 from consts import LEVELS
 
@@ -14,8 +13,6 @@ from rl.HumanPlayerPolicy import HumanPlayerPolicy
 from rl.RandomPolicy import RandomPolicy
 from rl.ExperienceReplay import ExperienceReplay
 from rl.MemoryLogger import MemoryLogger
-from rl.FullMemoryTrain import FullMemoryTrain
-from rl.LevelRandomPolicy import LevelRandomPolicy
 
 
 def train(agent, memory, policy, iterations=50,
@@ -59,12 +56,11 @@ if __name__ == '__main__':
     # mario_model = load_model(learning_rate=learning_rate)
 
     replay_memory = ExperienceReplay(
-        max_size=5000,
+        max_size=10,
         gamma=0.9,
-        train_epochs=1,
-        train_interval=1,
         sample_size=32,
-        queue_behaviour=True
+        should_pop_oldest=True,
+        reuse_db=True
     )
     
     # replay_memory = FullMemoryTrain(

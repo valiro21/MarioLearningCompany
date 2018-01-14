@@ -32,13 +32,13 @@ class FrameBuffer(object):
         return self.rewards[-1]
 
     def get_last_controller_states(self):
-        return np.expand_dims(self.controller_states.flatten(), 0)
+        return self.controller_states.flatten()
 
     def get_last_frame(self):
-        return np.expand_dims(self.frame, 0)
+        return self.frame
 
     def get_previous_frames(self):
-        return np.expand_dims(self.history, 0)
+        return self.history
 
 
 def rgb2gray(rgb):

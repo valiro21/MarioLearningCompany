@@ -44,8 +44,8 @@ class MemoryLogger(object):
                 action_name = get_action(action)[1]
                 print("%s: %s" % (action_name, num_entries))
 
-    def add(self, state, reward, scores, chosen_action, next_state, is_final_state):
-        self._memory.add(state, reward, scores, chosen_action, next_state, is_final_state)
+    def add(self, state, reward, chosen_action, next_state, is_final_state, scores):
+        self._memory.add(state, reward, chosen_action, next_state, is_final_state, scores)
 
         if self._log_action is not None and self._add_time % self._log_action == 0:
             self._debug_logger_thread.run_on_thread(

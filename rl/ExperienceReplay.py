@@ -1,84 +1,92 @@
 import numpy as np
-import random
-from termcolor import cprint
-
-from rl.CustomEnv import get_action
+import sqlite3
+import pickle
+from contextlib import closing
 
 
 class ExperienceReplay(object):
-    def __init__(self, max_size=100,
-                 gamma=0.7, sample_size=5,
-                 observe_steps=10, train_interval=1,
-                 train_epochs=1, batch_size=None,
-                 queue_behaviour=True):
+    def __init__(
+        self,
+        max_size=100,
+        gamma=0.7,
+        sample_size=32,
+        should_pop_oldest=True,
+        database_file='memory.db',
+        table_name='memory',
+        reuse_db=True,
+    ):
         self.max_size = max_size
-        self._size = 0
-        self._memory_idx = 0
-        self.time = 0
         self.gamma = gamma
-        self.observations = None
-        self._queue_behaviour = queue_behaviour
-        self._full = False
         self.sample_size = sample_size
-        self.model_train_epochs = train_epochs
-        if batch_size is None:
-            batch_size = sample_size
-        self.model_batch_size = batch_size
+        self.time = 0
 
-        self.states = None
-        self.next_states = None
-        self.actions = [-1] * max_size
-        self.rewards = [0] * max_size
-        self.is_next_final_state = [False] * max_size
-        self.actions_stats = {}
-        self.observe_steps = observe_steps
-        self.train_interval = train_interval
+        self._should_pop_oldest = should_pop_oldest
+        self._size = 0
+        self._table_name = table_name
+        self._database_connection = sqlite3.connect(database_file, isolation_level=None)
+        self._init_db(reuse_db)
+
+    def _init_db(self, reuse_db):
+        with closing(self._database_connection.cursor()) as cursor:
+            if not reuse_db:
+                cursor.execute('DROP TABLE IF EXISTS %s' % self._table_name)
+
+            cursor.execute(
+                'CREATE TABLE IF NOT EXISTS %s ('
+                'id INTEGER PRIMARY KEY AUTOINCREMENT,'
+                'state blob,'
+                'reward blob,'
+                'chosen_action blob,'
+                'next_state blob,'
+                'is_final_state blob)'
+                % self._table_name
+            )
+
+            self._size = cursor.execute(
+                'SELECT COUNT(*) FROM %s' % self._table_name
+            ).fetchone()[0]
 
     def allow_training(self):
-        return self.is_full() or self.size() >= self.observe_steps
+        return True
 
     def size(self):
         return self._size
 
     def is_full(self):
-        return self._full
+        return self._size == self.max_size
 
-    def _initialize(self, idx, game_image_shape):
-        self.states[idx] = np.zeros(shape=((self.max_size,) + game_image_shape[1:]))
-        self.next_states[idx] = np.zeros(shape=((self.max_size,) + game_image_shape[1:]))
+    @staticmethod
+    def _to_sqlite_blob(obj):
+        return sqlite3.Binary(pickle.dumps(obj, pickle.HIGHEST_PROTOCOL))
 
-    def add(self, state, reward, scores, chosen_action, next_state, is_final_state):
-        self.actions_stats[chosen_action] = self.actions_stats.get(chosen_action, 0) + 1
-        if self.states is None:
-            self.states = [None] * len(state)
-            self.next_states = [None] * len(state)
-            for idx, item in enumerate(state):
-                self._initialize(idx, item.shape)
+    @staticmethod
+    def _to_python_obj(blob):
+        return pickle.loads(blob)
 
-        for idx, item in enumerate(zip(state, next_state)):
-            self.states[idx][self._memory_idx] = item[0]
-            self.next_states[idx][self._memory_idx] = item[1]
-        if self._full:
-            old_action = self.actions[self._memory_idx]
-            self.actions_stats[old_action] = self.actions_stats[old_action] - 1
-        self.actions[self._memory_idx] = chosen_action
-        self.rewards[self._memory_idx] = reward
-        self.is_next_final_state[self._memory_idx] = is_final_state
+    @staticmethod
+    def _convert_data_for_model(data):
+        return [np.array([row[idx] for row in data]) for idx in range(len(data[0]))]
 
-        self._memory_idx += 1
+    def add(self, state, reward, action, next_state, is_final_state, scores):
+        with closing(self._database_connection.cursor()) as cursor:
+            if self.is_full():
+                if self._should_pop_oldest:
+                    cursor.execute('DELETE FROM %s ORDER BY id LIMIT 1;' % self._table_name)
+                else:
+                    cursor.execute('DELETE FROM %s ORDER BY RANDOM() LIMIT 1' % self._table_name)
+            else:
+                self._size += 1
+            pickled_data = tuple(map(ExperienceReplay._to_sqlite_blob, (state, reward, action, next_state, is_final_state)))
 
-        if not self._full:
-            self._size += 1
+            cursor.execute(
+                'INSERT INTO %s' 
+                '(state, reward, chosen_action, next_state, is_final_state)'
+                'VALUES (?, ?, ?, ?, ?)'
+                % self._table_name,
+                pickled_data
+            )
 
-        if self._memory_idx == self.max_size:
-            self._full = True
-            if self._queue_behaviour:
-                self._memory_idx = self._memory_idx % self.max_size
-
-        if self._full and not self._queue_behaviour:
-            self._memory_idx = random.randint(0, self.max_size - 1)
-
-    def _compute_new_score(self, time, scores, action, reward, next_score, is_final_state):
+    def _compute_new_score(self, time, scores, chosen_action, reward, next_score, is_final_state):
         if is_final_state:
             updated_score = reward
         else:
@@ -86,62 +94,51 @@ class ExperienceReplay(object):
             updated_score = new_score
         return updated_score
 
-    def train(self, model, verbose=0):
+    def get_train_data(self, model):
         self.time += 1
-        
-        if not self.allow_training():
-            return
 
-        if self.time % self.train_interval != 0:
-            return
+        with closing(self._database_connection.cursor()) as cursor:
+            sqlite_data = cursor.execute(
+                'SELECT * FROM %s ORDER BY RANDOM() LIMIT ?' % self._table_name,
+                (self.sample_size,)
+            ).fetchall()
 
-        has_uninitialized = any(filter(lambda x: x < 0, self.actions))
+            if not self.allow_training():
+                return
 
-        num_choices = self._memory_idx if has_uninitialized else self.max_size
-        if num_choices == 0:
-            return
+            samples = []
+            for row in sqlite_data:
+                memory_row = list(map(
+                    ExperienceReplay._to_python_obj,
+                    row[1:]
+                ))
 
-        sample_size = self.size() if self.sample_size is None else self.sample_size
-        if num_choices < sample_size:
-            sample_size = num_choices
+                samples.append(memory_row)
 
-        sample = random.sample(range(num_choices), sample_size)
+        states = ExperienceReplay._convert_data_for_model([row[0] for row in samples])
+        next_states = ExperienceReplay._convert_data_for_model([row[3] for row in samples])
 
-        next_states_info = []
-        for item in self.next_states:
-            next_states_info.append(item[sample])
         next_scores = np.max(
             model.predict(
-                next_states_info
+                next_states
             ),
             axis=1
         )
+        y = model.predict(states)
 
-        states_info = []
-        for item in self.states:
-            states_info.append(item[sample])
-        y = model.predict(states_info)
+        for idx, val in enumerate(zip(samples, next_scores)):
+            data_val, next_score = val
+            state, reward, action, next_state, is_final_state = data_val
 
-        for yidx, val in enumerate(zip(sample, next_scores)):
-            idx, next_score = val
-
-            action = self.actions[idx]
             updated_score = self._compute_new_score(
                 self.time,
-                y[yidx],
+                y[idx],
                 action,
-                self.rewards[idx],
+                reward,
                 next_score,
-                self.is_next_final_state[idx]
+                is_final_state
             )
 
-            y[yidx, action] = updated_score
-
-        model.fit(
-            x=states_info,
-            y=y,
-            epochs=self.model_train_epochs,
-            batch_size=self.model_batch_size,
-            verbose=1
-        )
+            y[idx, action] = updated_score
+        return states, y
 

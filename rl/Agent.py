@@ -7,7 +7,7 @@ class Agent(object):
         self.model = model
 
     def _compute_scores(self, observation):
-        return self.model.predict(observation)[0]
+        return self.model.predict([np.expand_dims(item, 0) for item in observation])[0]
 
     def train(self, env, memory, policy, **kwargs):
         if policy.allows_async_training():
@@ -15,14 +15,16 @@ class Agent(object):
         else:
             return self._train_sync(env, memory, policy, **kwargs)
 
-    def _train_sync(self, env, memory, policy):
+    def _train_sync(self, env, memory, policy,
+                    batch_size=None, train_epoches=1,
+                    verbose=1):
         done = False
         info = {}
         observation = env.reset()
         last_observation = []
         for item in observation:
             last_observation.append(np.zeros(shape=item.shape))
-        scores = self.model.predict(observation)
+        scores = self._compute_scores(observation)
 
         env.render()
         policy.game_loaded()
@@ -38,19 +40,28 @@ class Agent(object):
             memory.add(
                 last_observation,
                 reward,
-                scores,
                 action,
                 observation,
-                done
+                done,
+                scores
             )
 
             if memory.allow_training():
-                memory.train(self.model)
+                x, y = memory.get_train_data(self.model)
+                self.model.fit(
+                    x=x,
+                    y=y,
+                    epochs=train_epoches,
+                    batch_size=batch_size,
+                    verbose=verbose
+                )
         env.close()
 
         return info
 
-    def _train_async(self, env, memory, policy):
+    def _train_async(self, env, memory, policy,
+                     batch_size=None, train_epoches=1,
+                     verbose=1):
         done = False
         info = {}
         observation = env.reset()
@@ -64,7 +75,15 @@ class Agent(object):
 
         def _train_memory():
             while True:
-                memory.train(self.model)
+                if memory.allow_training():
+                    x, y = memory.get_train_data(self.model)
+                    self.model.fit(
+                        x=x,
+                        y=y,
+                        epochs=train_epoches,
+                        batch_size=batch_size,
+                        verbose=verbose
+                    )
 
         train_started = False
 
