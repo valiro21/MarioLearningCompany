@@ -13,20 +13,23 @@ from rl.HumanPlayerPolicy import HumanPlayerPolicy
 from rl.RandomPolicy import RandomPolicy
 from rl.ExperienceReplay import ExperienceReplay
 from rl.MemoryLogger import MemoryLogger
+import matplotlib.pyplot as plt
 
 
 def train(agent, memory, policy, iterations=50,
           frame_history_size=2, actions_history_size=4,
           initial_level=None, change_level=True,
-          save_model_iteration_interval=1):
+          save_model_iteration_interval=1,
+          total_reward_figure_file='rewards.png'):
     level = random.choice(LEVELS) if initial_level is None else initial_level
     policy.game_changed()
+    total_rewards = []
     for iteration in range(iterations):
         env = gym.make(level)
 
         env = CustomEnv(env,
-                        frame_width=64,
-                        frame_height=64,
+                        frame_width=128,
+                        frame_height=128,
                         history_width=32,
                         history_height=32,
                         frame_history_size=frame_history_size,
@@ -34,6 +37,12 @@ def train(agent, memory, policy, iterations=50,
         last_info, total_reward = agent.train(env, memory, policy)
         print("Last info:", last_info)
         print("Total reward:", total_reward)
+
+        total_rewards.append(total_reward)
+        fig, ax = plt.subplots(nrows=1, ncols=1)
+        ax.plot(range(1, iteration+2), total_rewards)
+        fig.savefig(total_reward_figure_file)
+        plt.close(fig)
 
         if change_level and last_info['life'] > 0 and last_info['distance'] != -1:
             level = random.choice(LEVELS)
@@ -46,6 +55,22 @@ def train(agent, memory, policy, iterations=50,
     save_model(agent.model)
 
 
+def play(agent, policy, level=None):
+    level = random.choice(LEVELS) if level is None else level
+    env = gym.make(level)
+
+    env = CustomEnv(env,
+                    frame_width=128,
+                    frame_height=128,
+                    history_width=32,
+                    history_height=32,
+                    frame_history_size=frame_history_size,
+                    actions_history_size=actions_history_size)
+    last_info, total_reward = agent.play(env, policy)
+    print("Last info:", last_info)
+    print("Total reward:", total_reward)
+
+
 if __name__ == '__main__':
     seed = 123123223
     random.seed(seed)
@@ -56,9 +81,16 @@ if __name__ == '__main__':
                               frame_history_size=frame_history_size,
                               learning_rate=learning_rate)
     # mario_model = load_model(learning_rate=learning_rate)
+    
+    debug_logger_thread = AsyncMethodExecutor()
+    debug_logger_thread.start()
+
+    agent = Agent(mario_model)
+    # play(agent, RandomPolicy(epsilon=0., epsilon_min=0., dropout=1.), level=LEVELS[1])
+    # exit()
 
     replay_memory = ExperienceReplay(
-        max_size=1000000,
+        max_size=100000,
         gamma=0.9,
         sample_size=32,
         database_file='cache/memory.db',
@@ -74,13 +106,9 @@ if __name__ == '__main__':
     #     queue_behaviour=True
     # )
 
-    debug_logger_thread = AsyncMethodExecutor()
-    debug_logger_thread.start()
-
-    agent = Agent(mario_model)
 
     # policy = HumanPlayerPolicy()
-    policy = RandomPolicy(epsilon=1., epsilon_decay=0.000008, epsilon_min=0.1, dropout=0.01)
+    policy = RandomPolicy(epsilon=1., epsilon_decay=0.00001, epsilon_min=0.05, dropout=0.01)
     # policy = LevelRandomPolicy(epsilon=1., epsilon_min=0.1)
     # agent = AgentConvolutionDebug(agent, debug_logger_thread, layers=[2, 3], show_network_input=False)
 

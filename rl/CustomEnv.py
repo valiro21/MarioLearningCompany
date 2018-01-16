@@ -79,7 +79,6 @@ class CustomEnv(object):
     def __init__(self, env,
                  frame_width=224, frame_height=256,
                  history_width=84, history_height=84,
-                 max_nonmovement_frames=None,
                  frame_history_size=1, actions_history_size=4):
         self.__class__ = type(env.__class__.__name__,
                               (self.__class__, env.__class__),
@@ -97,9 +96,6 @@ class CustomEnv(object):
         self._width = frame_width
         self._height = frame_height
         self.last_info = None
-        self._last_distance_deltas = None
-        if max_nonmovement_frames is not None:
-            self._last_distance_deltas = np.full((max_nonmovement_frames,), 1)
 
     def convert_for_network(self, observation):
         observation = resize(observation, (self._width, self._height))
@@ -122,10 +118,7 @@ class CustomEnv(object):
     def step(self, action):
         controller_state = get_action(action)[0]
         observation, reward, done, info = self._env.step(controller_state)
-       
-        distance_delta = 0
-        if self.last_info is not None:
-            distance_delta = info['distance'] - self.last_info['distance']
+
         self.last_info = copy(info)
         print(info)
         
@@ -133,20 +126,13 @@ class CustomEnv(object):
             reward = -1
 
         terminate_iteration = False
-        if self._last_distance_deltas is not None:
-            self._last_distance_deltas = np.roll(self._last_distance_deltas, -1)
-            self._last_distance_deltas[-1] = distance_delta
+#         if info['distance'] < 400 - info['time'] and info['time'] < 370:
+#             terminate_iteration = True
 
-            if np.sum(self._last_distance_deltas) <= 2:
-                terminate_iteration = True
-
-        if info['distance'] < 400 - info['time'] and info['time'] < 370:
-            terminate_iteration = True
-
-        if terminate_iteration:
-            done = True
-            info['distance'] = -1
-            reward = -1
+#        if terminate_iteration:
+#            done = True
+#            info['distance'] = -1
+#            reward = -1
 
         if reward > 0:
             reward = reward * info['time'] / 800.

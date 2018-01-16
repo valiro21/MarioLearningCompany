@@ -1,10 +1,18 @@
 import random
+import threading
 
 import numpy as np
 import sqlite3
 import pickle
 from contextlib import closing
 from blist import sortedlist
+
+from rl.AsyncMethodExecutor import AsyncMethodExecutor
+
+
+class DataPacket(object):
+    def __init__(self):
+        self.data = None
 
 
 class ExperienceReplay(object):
@@ -26,12 +34,22 @@ class ExperienceReplay(object):
         self._should_pop_oldest = should_pop_oldest
         self._size = 0
         self._table_name = table_name
-        self._database_connection = sqlite3.connect(database_file, isolation_level=None)
         self._ids = sortedlist()
         self._ids_idx = []
-        self._init_db(reuse_db)
+        self._last_query_data = None
+        self._db_thread = AsyncMethodExecutor()
+        self._db_thread.start()
+        self._db_lock = threading.Event()
+        self._db_lock.set()
 
-    def _init_db(self, reuse_db):
+        self._db_thread.run_on_thread(
+            self._init_db,
+            database_file,
+            reuse_db
+        )
+
+    def _init_db(self, database_file, reuse_db):
+        self._database_connection = sqlite3.connect(database_file, isolation_level=None)
         with closing(self._database_connection.cursor()) as cursor:
             if not reuse_db:
                 cursor.execute('DROP TABLE IF EXISTS %s' % self._table_name)
@@ -73,7 +91,7 @@ class ExperienceReplay(object):
     def _convert_data_for_model(data):
         return [np.array([row[idx] for row in data]) for idx in range(len(data[0]))]
 
-    def add(self, state, reward, action, next_state, is_final_state, scores):
+    def _add(self, state, reward, action, next_state, is_final_state, scores):
         with closing(self._database_connection.cursor()) as cursor:
             if self.is_full():
                 id_to_delete = self._ids[0]
@@ -97,6 +115,17 @@ class ExperienceReplay(object):
             self._ids.add(cursor.lastrowid)
             self._ids_idx.append(len(self._ids_idx))
 
+    def add(self, state, reward, action, next_state, is_final_state, scores):
+        self._db_thread.run_on_thread(
+            self._add,
+            state,
+            reward,
+            action,
+            next_state,
+            is_final_state,
+            scores
+        )
+
     def _compute_new_score(self, time, scores, chosen_action, reward, next_score, is_final_state):
         if is_final_state:
             updated_score = reward
@@ -105,9 +134,7 @@ class ExperienceReplay(object):
             updated_score = new_score
         return updated_score
 
-    def get_train_data(self, model):
-        self.time += 1
-
+    def _fetch_sample_from_db(self):
         sample_idx = random.sample(self._ids_idx, self.sample_size)
         ids = [self._ids[idx] for idx in sample_idx]
         id_list = ",".join(map(str, ids))
@@ -117,9 +144,6 @@ class ExperienceReplay(object):
                 'SELECT * FROM %s WHERE id IN (%s)' % (self._table_name, id_list)
             ).fetchall()
 
-            if not self.allow_training():
-                return
-
             samples = []
             for row in sqlite_data:
                 memory_row = list(map(
@@ -128,6 +152,27 @@ class ExperienceReplay(object):
                 ))
 
                 samples.append(memory_row)
+        self._last_query_data = samples
+        self._db_lock.set()
+
+    def _fetch_data_async(self):
+        self._db_lock.clear()
+        self._db_thread.run_on_thread(
+            self._fetch_sample_from_db
+        )
+
+    def get_train_data(self, model):
+        if not self.allow_training():
+            return
+
+        self._db_lock.wait()
+        if self._last_query_data is None:
+            self._fetch_data_async()
+            self._db_lock.wait()
+
+        samples = self._last_query_data
+        self._fetch_data_async()
+        self.time += 1
 
         states = ExperienceReplay._convert_data_for_model([row[0] for row in samples])
         next_states = ExperienceReplay._convert_data_for_model([row[3] for row in samples])

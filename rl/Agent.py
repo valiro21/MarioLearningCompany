@@ -1,5 +1,6 @@
 import threading
 import numpy as np
+from rl.AsyncMethodExecutor import AsyncMethodExecutor
 
 
 class Agent(object):
@@ -74,6 +75,7 @@ class Agent(object):
 
         env.render()
         policy.game_loaded()
+        memory_thread = AsyncMethodExecutor()
 
         def _train_memory():
             while True:
@@ -98,7 +100,8 @@ class Agent(object):
 
             scores = self._compute_scores(observation)
 
-            memory.add(
+            memory_thread.run_on_thread(
+                memory.add,
                 last_observation,
                 reward,
                 scores,
@@ -113,3 +116,22 @@ class Agent(object):
         env.close()
 
         return info
+
+    def play(self, env, policy):
+        info = {}
+        observation = env.reset()
+        scores = self._compute_scores(observation)
+
+        env.render()
+        total_reward = 0.
+        done = False
+        while not done:
+            action = policy.get_action(scores)
+
+            observation, reward, done, info = env.step(action)
+            total_reward += reward
+
+            scores = self._compute_scores(observation)
+        env.close()
+
+        return info, total_reward

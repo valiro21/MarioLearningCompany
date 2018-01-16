@@ -104,38 +104,8 @@ def build_history_model(history_size=4):
         )
     )
     model.add(
-        MaxPooling2D(
-            pool_size=(2, 2),
-            strides=(2, 2),
-            data_format='channels_first'
-        )
-    )
-
-    model.add(
         Conv2D(
-            filters=256,
-            kernel_size=(3, 3),
-            strides=(1, 1),
-            padding="same",
-            data_format='channels_first',
-            activation='relu',
-            kernel_initializer=VarianceScaling()
-        )
-    )
-    model.add(
-        Conv2D(
-            filters=256,
-            kernel_size=(3, 3),
-            strides=(1, 1),
-            padding="same",
-            data_format='channels_first',
-            activation='relu',
-            kernel_initializer=VarianceScaling()
-        )
-    )
-    model.add(
-        Conv2D(
-            filters=256,
+            filters=128,
             kernel_size=(3, 3),
             strides=(2, 2),
             padding="same",
@@ -151,7 +121,6 @@ def build_history_model(history_size=4):
             data_format='channels_first'
         )
     )
-
     model.add(Flatten())
 
     return model
@@ -161,9 +130,9 @@ def build_frame_model():
     model = Sequential()
     model.add(
         Conv2D(
-            filters=64,
+            filters=32,
             kernel_size=(3, 3),
-            input_shape=(3, 64, 64),
+            input_shape=(3, 128, 128),
             strides=(1, 1),
             padding="same",
             data_format='channels_first',
@@ -173,7 +142,7 @@ def build_frame_model():
     )
     model.add(
         Conv2D(
-            filters=64,
+            filters=32,
             kernel_size=(3, 3),
             strides=(1, 1),
             padding="same",
@@ -192,7 +161,7 @@ def build_frame_model():
 
     model.add(
         Conv2D(
-            filters=128,
+            filters=64,
             kernel_size=(3, 3),
             strides=(1, 1),
             padding="same",
@@ -203,7 +172,7 @@ def build_frame_model():
     )
     model.add(
         Conv2D(
-            filters=128,
+            filters=64,
             kernel_size=(3, 3),
             strides=(1, 1),
             padding="same",
@@ -222,7 +191,7 @@ def build_frame_model():
     
     model.add(
         Conv2D(
-            filters=256,
+            filters=128,
             kernel_size=(3, 3),
             strides=(1, 1),
             padding="same",
@@ -233,7 +202,7 @@ def build_frame_model():
     )
     model.add(
         Conv2D(
-            filters=256,
+            filters=128,
             kernel_size=(3, 3),
             strides=(1, 1),
             padding="same",
@@ -243,10 +212,29 @@ def build_frame_model():
         )
     )
     model.add(
-        Conv2D(
-            filters=256,
-            kernel_size=(3, 3),
+        MaxPooling2D(
+            pool_size=(2, 2),
             strides=(2, 2),
+            data_format='channels_first'
+        )
+    )
+
+    model.add(
+        Conv2D(
+            filters=256,
+            kernel_size=(3, 3),
+            strides=(1, 1),
+            padding="same",
+            data_format='channels_first',
+            activation='relu',
+            kernel_initializer=VarianceScaling()
+        )
+    )
+    model.add(
+        Conv2D(
+            filters=256,
+            kernel_size=(3, 3),
+            strides=(1, 1),
             padding="same",
             data_format='channels_first',
             activation='relu',
@@ -302,6 +290,7 @@ def build_frame_model():
             data_format='channels_first'
         )
     )
+
     model.add(Flatten())
 
     return model
@@ -321,7 +310,7 @@ def build_model(frame_history_size=2, actions_history_size=4, learning_rate=0.00
 
     image_model.add(
         Dense(
-            units=512,
+            units=2048,
             activation='relu',
             kernel_initializer=VarianceScaling()
         )
@@ -336,7 +325,7 @@ def build_model(frame_history_size=2, actions_history_size=4, learning_rate=0.00
     
     model.add(
         Dense(
-            units=512,
+            units=1024,
             activation='relu',
             kernel_initializer=VarianceScaling()
         )
@@ -344,7 +333,7 @@ def build_model(frame_history_size=2, actions_history_size=4, learning_rate=0.00
     model.add(Dropout(0.5))
     model.add(
         Dense(
-            units=512,
+            units=1024,
             activation='relu',
             kernel_initializer=VarianceScaling()
         )
