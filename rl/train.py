@@ -16,10 +16,14 @@ def save_plot(x, y, file):
 
 
 def play(agent, env, policy, record=True, working_dir="./train"):
-    info_history, total_reward, _ = agent.train(
+    epoch_data = agent.train(
         env,
         policy,
+        memory=None,
+        epochs=1,
     )
+
+    info_history, total_reward, _ = next(epoch_data)
 
     if record:
         frames = np.array([info['frames'] for info in info_history])
@@ -61,17 +65,21 @@ def train(agent, env, policy, memory, epochs=50, test_interval=None, working_dir
         train_avg_acc.append(avg_acc_sum)
 
         if test_interval is not None and (epoch + 1) % test_interval == 0:
-            info_history, total_reward, _ = agent.train(
+            test_data = agent.train(
                 env,
                 Policy(policy.action_mapper),
+                memory=None,
+                epochs=1,
             )
+            info_history, total_reward, _ = next(test_data)
+
             test_epochs.append(epoch)
             test_sum_rewards.append(total_reward)
+            save_plot(test_epochs, test_sum_rewards, os.path.join(working_dir, "test_total_rewards.png"))
 
         save_plot(train_epochs, train_sum_rewards, os.path.join(working_dir, "train_total_rewards.png"))
-        save_plot(train_sum_loss, train_sum_rewards, os.path.join(working_dir, "train_total_loss.png"))
-        save_plot(train_avg_acc, train_sum_rewards, os.path.join(working_dir, "train_avg_acc.png"))
-        save_plot(test_sum_rewards, train_sum_rewards, os.path.join(working_dir, "test_total_rewards.png"))
+        save_plot(train_epochs, train_sum_loss, os.path.join(working_dir, "train_total_loss.png"))
+        save_plot(train_epochs, train_avg_acc, os.path.join(working_dir, "train_avg_acc.png"))
 
         agent.save_model(
             os.path.join(working_dir, "model.json"),

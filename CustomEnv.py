@@ -1,5 +1,6 @@
 import random
 
+import gym
 import numpy as np
 from skimage.transform import resize
 import copy
@@ -127,6 +128,7 @@ class CustomEnv(object):
         return observation
 
     def reset(self):
+        self._env = gym.make(self._env.spec.id)
         observation = self._env.reset()
         observation = self.convert_for_network(observation)
         self._frame_buffer.reset()

@@ -47,8 +47,10 @@ def train_mario_model(epochs=500,
         frame_history_size
     )
 
+    env = gym.make(level)
+
     env = CustomEnv(
-        gym.make(level),
+        env,
         frame_width=84,
         frame_height=84,
         history_width=32,
@@ -86,7 +88,7 @@ def train_mario_model(epochs=500,
         policy,
         memory,
         epochs=epochs,
-        test_interval=True,
+        test_interval=5,
         working_dir=working_dir
     )
 
@@ -99,6 +101,16 @@ if __name__ == '__main__':
         epochs=500,
         gamma=0.9,
         learning_rate=0.0004,
+        memory_size=135000,
+        sample_size=32,
+        actions_history_size=16,
+        frame_history_size=2
+    )
+
+    train_mario_model(
+        epochs=500,
+        gamma=0.9,
+        learning_rate=0.00004,
         memory_size=135000,
         sample_size=32,
         actions_history_size=16,

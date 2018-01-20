@@ -73,7 +73,6 @@ class Agent(object):
             last_observation.append(np.zeros(shape=item.shape))
 
         policy.epoch_start()
-        env.render()
         qvalues = self.compute_qvalues(observation)
 
         while not is_final_state:
@@ -151,7 +150,7 @@ class Agent(object):
 
     def train(self, env, policy, memory=None, epochs=50):
         for epoch in range(epochs):
-            info_history, train_info_history, total_reward, model_train_histories = self.train_epoch(env, policy, memory)
+            info_history, total_reward, model_train_histories = self.train_epoch(env, policy, memory)
             yield info_history, total_reward, model_train_histories
 
     def save_model(self, model, weights):
