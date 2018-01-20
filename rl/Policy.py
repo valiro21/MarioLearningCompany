@@ -1,5 +1,5 @@
-import pygame
-from abc import ABC, abstractmethod
+from abc import abstractmethod
+import numpy as np
 
 
 class Policy(object):
@@ -7,7 +7,7 @@ class Policy(object):
         pass
 
     @abstractmethod
-    def game_loaded(self):
+    def epoch_start(self):
         pass
 
     @abstractmethod
@@ -18,6 +18,5 @@ class Policy(object):
     def game_changed(self):
         pass
 
-    @abstractmethod
     def get_action(self, scores):
-        pass
+        return np.argmax(scores)
