@@ -1,6 +1,8 @@
+import random
+
 import numpy as np
 from skimage.transform import resize
-from copy import copy
+import copy
 
 
 class FrameBuffer(object):
@@ -75,6 +77,27 @@ def get_action(action):
     return mapping[action]
 
 
+class Action(np.int16):
+    def __str__(self):
+        return get_action(self)[1]
+
+
+def action_mapper(action):
+    return Action(action)
+
+
+class ActionSpaceWrapper(object):
+    def __init__(self, action_space):
+        self.__class__ = type(action_space.__class__.__name__,
+                          (self.__class__, action_space.__class__),
+                          {})
+        self.__dict__ = action_space.__dict__
+
+    def sample(self):
+        action = random.randint(0, 13)
+        return Action(action)
+
+
 class CustomEnv(object):
     def __init__(self, env,
                  frame_width=224, frame_height=256,
@@ -84,6 +107,7 @@ class CustomEnv(object):
                               (self.__class__, env.__class__),
                               {})
         self.__dict__ = env.__dict__
+        self.action_space = ActionSpaceWrapper(env.action_space)
         self._env = env
         self._frame_buffer = FrameBuffer(
             frame_width=frame_width,
@@ -95,19 +119,16 @@ class CustomEnv(object):
         )
         self._width = frame_width
         self._height = frame_height
-        self.last_info = None
 
     def convert_for_network(self, observation):
         observation = resize(observation, (self._width, self._height))
         observation = np.swapaxes(observation, 1, 2)
-        observation= np.swapaxes(observation, 0, 1)
-        observation /= 255.
+        observation = np.swapaxes(observation, 0, 1)
         return observation
 
     def reset(self):
         observation = self._env.reset()
         observation = self.convert_for_network(observation)
-
         self._frame_buffer.reset()
         self._frame_buffer.add(observation, 0, [0, 0, 0, 0, 0, 0])
 
@@ -119,23 +140,16 @@ class CustomEnv(object):
         controller_state = get_action(action)[0]
         observation, reward, done, info = self._env.step(controller_state)
 
-        self.last_info = copy(info)
         print(info)
-        
-        if info['life'] == 0:
+        new_info = copy.copy(info)
+
+        new_info['frames'] = np.copy(observation)
+
+        if new_info['life'] == 0:
             reward = -1
 
-        terminate_iteration = False
-#         if info['distance'] < 400 - info['time'] and info['time'] < 370:
-#             terminate_iteration = True
-
-#        if terminate_iteration:
-#            done = True
-#            info['distance'] = -1
-#            reward = -1
-
         if reward > 0:
-            reward = reward * info['time'] / 800.
+            reward = reward * new_info['time'] / 800.
         reward = np.clip(reward, -1, 1)
 
         observation = self.convert_for_network(observation)
@@ -145,5 +159,5 @@ class CustomEnv(object):
         observation = [self._frame_buffer.get_last_controller_states(),
                        self._frame_buffer.get_previous_frames(),
                        self._frame_buffer.get_last_frame()]
-        
-        return observation, self._frame_buffer.get_reward(), done, info
+
+        return observation, self._frame_buffer.get_reward(), done, new_info

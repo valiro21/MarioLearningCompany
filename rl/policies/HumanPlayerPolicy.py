@@ -1,6 +1,6 @@
 import pygame
 
-from rl import Policy
+from rl.policies import Policy
 
 
 class HumanPlayerPolicy(Policy):
@@ -22,7 +22,7 @@ class HumanPlayerPolicy(Policy):
     def allows_async_training(self):
         return True
 
-    def get_action(self, scores):
+    def get_action(self, env, qvalues):
         mapping = {
             0: ([0, 0, 0, 0, 0, 0], "NOOP"),
             1: ([1, 0, 0, 0, 0, 0], "Up"),

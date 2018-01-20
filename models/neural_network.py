@@ -132,7 +132,7 @@ def build_frame_model():
         Conv2D(
             filters=32,
             kernel_size=(3, 3),
-            input_shape=(3, 128, 128),
+            input_shape=(3, 84, 84),
             strides=(1, 1),
             padding="same",
             data_format='channels_first',
@@ -242,40 +242,9 @@ def build_frame_model():
         )
     )
     model.add(
-        MaxPooling2D(
-            pool_size=(2, 2),
-            strides=(2, 2),
-            data_format='channels_first'
-        )
-    )
-
-    model.add(
         Conv2D(
-            filters=512,
+            filters=256,
             kernel_size=(3, 3),
-            strides=(1, 1),
-            padding="same",
-            data_format='channels_first',
-            activation='relu',
-            kernel_initializer=VarianceScaling()
-        )
-    )
-    model.add(
-        Conv2D(
-            filters=512,
-            kernel_size=(3, 3),
-            strides=(1, 1),
-            padding="same",
-            data_format='channels_first',
-            activation='relu',
-            kernel_initializer=VarianceScaling()
-        )
-    )
-    model.add(
-        Conv2D(
-            filters=512,
-            kernel_size=(3, 3),
-            input_shape=(32, 16, 16),
             strides=(2, 2),
             padding="same",
             data_format='channels_first',
@@ -356,18 +325,6 @@ def build_model(frame_history_size=2, actions_history_size=4, learning_rate=0.00
     model._make_predict_function()
 
     return model
-
-
-def save_model(model_to_save,
-               model_file='model.json',
-               weights_file='model.h5'):
-    # serialize model to JSON
-    model_json = model_to_save.to_json()
-    with open(model_file, "w") as json_file:
-        json_file.write(model_json)
-
-    # serialize weights to HDF5
-    model_to_save.save_weights(weights_file)
 
 
 def load_model(model_file="./model.json",

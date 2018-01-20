@@ -3,7 +3,9 @@ import numpy as np
 
 
 class Policy(object):
-    def __init__(self):
+    def __init__(self, action_mapper):
+        assert action_mapper is not None, "The model to env action mapper must be present."
+        self.action_mapper = action_mapper
         pass
 
     @abstractmethod
@@ -18,5 +20,5 @@ class Policy(object):
     def game_changed(self):
         pass
 
-    def get_action(self, scores):
-        return np.argmax(scores)
+    def get_action(self, env, qvalues):
+        return self.action_mapper(np.argmax(qvalues))

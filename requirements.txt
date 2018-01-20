@@ -8,3 +8,5 @@ termcolor
 scikit-image
 matplotlib
 blist
+scikit-video
+ffprobe
