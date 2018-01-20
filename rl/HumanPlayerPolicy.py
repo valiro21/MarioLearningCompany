@@ -1,6 +1,6 @@
 import pygame
 
-from rl.Policy import Policy
+from rl import Policy
 
 
 class HumanPlayerPolicy(Policy):
@@ -13,7 +13,7 @@ class HumanPlayerPolicy(Policy):
         size = (w, h)
         screen = pygame.display.set_mode(size)
 
-    def game_loaded(self):
+    def epoch_start(self):
         pass
 
     def game_changed(self):
